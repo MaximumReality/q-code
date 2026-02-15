@@ -3,38 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Q-Code Fixed Pyramid</title>
+<title>Q-Code Solid Pyramid</title>
 <style>
-body {
-    margin: 0;
-    background: #000;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-}
+body { margin: 0; background: #000; overflow: hidden; height: 100vh; display: flex; justify-content: center; }
 
-#pyramid-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-}
+#pyramid-container { position: relative; width: 100%; height: 100%; perspective: 1000px; }
 
-.tile {
+/* The Cube Container */
+.cube {
     position: absolute;
     width: 60px;
     height: 60px;
-    background: #ff0055;
-    /* THE MAGIC KEY: Rotate 45 deg then flatten by half on Y axis */
-    transform: rotateX(60deg) rotateZ(45deg);
-    cursor: pointer;
-    transition: background 0.2s, box-shadow 0.2s;
-    border: 2px solid #ff88aa;
+    transition: all 0.2s ease;
+}
+
+/* Common style for all faces */
+.face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
     box-sizing: border-box;
 }
 
-.tile.compiled {
+/* THE TOP DIAMOND (The part Azul stands on) */
+.top {
+    background: #ff0055;
+    transform: rotateX(60deg) rotateZ(45deg);
+    border: 2px solid #ff88aa;
+    z-index: 2;
+}
+
+/* THE SIDES (The 3D depth) */
+.left-side {
+    background: #990033; /* Darker for shadow */
+    transform: skewY(30deg) scaleX(0.5) translate(-50%, 50%);
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 15px;
+}
+
+.right-side {
+    background: #cc0044;
+    transform: skewY(-30deg) scaleX(0.5) translate(50%, 50%);
+    width: 100%;
+    height: 100%;
+    right: 0;
+    top: 15px;
+}
+
+/* Compiled State - Molecular Glow */
+.cube.compiled .top {
     background: #00ffff;
     border: 2px solid #88ffff;
     box-shadow: 0 0 20px #00ffff;
@@ -43,11 +62,10 @@ body {
 #azul {
     position: absolute;
     width: 50px;
-    z-index: 100;
+    z-index: 999; /* Azul is always in front */
     pointer-events: none;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    /* Keeps Azul standing upright despite the tile rotations */
-    transform: translate(-50%, -80%); 
+    transform: translate(-50%, -90%);
 }
 </style>
 </head>
@@ -58,49 +76,50 @@ body {
 </div>
 
 <script>
-const pyramidLevels = 7; // Classic 7 levels
-const tileSize = 55;   // The visual gap between tiles
+const levels = 6;
+const spacing = 58; // Tight spacing for that solid look
 const container = document.getElementById("pyramid-container");
 const azul = document.getElementById("azul");
 
-// Adjust center based on screen size
 const startX = window.innerWidth / 2;
-const startY = 120;
+const startY = 100;
 
-for(let r = 0; r < pyramidLevels; r++) {
+for(let r = 0; r < levels; r++) {
     for(let c = 0; c <= r; c++) {
-        const tile = document.createElement("div");
-        tile.className = "tile";
+        const cube = document.createElement("div");
+        cube.className = "cube";
+        
+        // Create the 3 faces
+        cube.innerHTML = `
+            <div class="face left-side"></div>
+            <div class="face right-side"></div>
+            <div class="face top"></div>
+        `;
 
-        /* ISOMETRIC POSITIONING 
-           xPos: Centers each row by subtracting half the row width (r/2)
-           yPos: Moves each row down using a 0.75 multiplier for a tight stack
-        */
-        const xPos = startX + (c - r / 2) * tileSize;
-        const yPos = startY + (r * tileSize * 0.75);
+        const xPos = startX + (c - r / 2) * spacing;
+        const yPos = startY + (r * spacing * 0.75);
 
-        tile.style.left = (xPos - 30) + "px"; // Subtract half width
-        tile.style.top = yPos + "px";
+        cube.style.left = (xPos - 30) + "px";
+        cube.style.top = yPos + "px";
+        
+        // IMPORTANT: Higher Z-index for lower rows so they overlap correctly
+        cube.style.zIndex = r;
 
-        tile.addEventListener("touchstart", (e) => {
-            e.preventDefault(); // Prevents double-tap zoom on iPhone
-            tile.classList.toggle("compiled");
-            
-            // Move Azul to the visual center of this tile
+        cube.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            cube.classList.toggle("compiled");
             azul.style.left = xPos + "px";
-            azul.style.top = yPos + 15 + "px";
+            azul.style.top = yPos + 10 + "px";
         });
 
-        container.appendChild(tile);
-        
-        // Starting Position for Azul (Top tile)
+        container.appendChild(cube);
+
         if(r === 0 && c === 0) {
             azul.style.left = xPos + "px";
-            azul.style.top = yPos + 15 + "px";
+            azul.style.top = yPos + 10 + "px";
         }
     }
 }
 </script>
-
 </body>
 </html>
