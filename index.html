@@ -5,9 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Q-Code Solid Pyramid</title>
 <style>
-body { margin: 0; background: #000; overflow: hidden; height: 100vh; display: flex; justify-content: center; }
+body { 
+    margin: 0; 
+    background: #000; 
+    overflow: hidden; 
+    height: 100vh; 
+    display: flex; 
+    justify-content: center; 
+}
 
-#pyramid-container { position: relative; width: 100%; height: 100%; perspective: 1000px; }
+#pyramid-container { 
+    position: relative; 
+    width: 100%; 
+    height: 100%; 
+    perspective: 1000px; 
+}
 
 /* The Cube Container */
 .cube {
@@ -25,7 +37,7 @@ body { margin: 0; background: #000; overflow: hidden; height: 100vh; display: fl
     box-sizing: border-box;
 }
 
-/* THE TOP DIAMOND (The part Azul stands on) */
+/* Top Diamond (Azul stands on) */
 .top {
     background: #ff0055;
     transform: rotateX(60deg) rotateZ(45deg);
@@ -33,12 +45,10 @@ body { margin: 0; background: #000; overflow: hidden; height: 100vh; display: fl
     z-index: 2;
 }
 
-/* THE SIDES (The 3D depth) */
+/* Sides for depth */
 .left-side {
-    background: #990033; /* Darker for shadow */
+    background: #990033; 
     transform: skewY(30deg) scaleX(0.5) translate(-50%, 50%);
-    width: 100%;
-    height: 100%;
     left: 0;
     top: 15px;
 }
@@ -46,25 +56,24 @@ body { margin: 0; background: #000; overflow: hidden; height: 100vh; display: fl
 .right-side {
     background: #cc0044;
     transform: skewY(-30deg) scaleX(0.5) translate(50%, 50%);
-    width: 100%;
-    height: 100%;
     right: 0;
     top: 15px;
 }
 
-/* Compiled State - Molecular Glow */
+/* Compiled State - Neon Glow */
 .cube.compiled .top {
     background: #00ffff;
     border: 2px solid #88ffff;
     box-shadow: 0 0 20px #00ffff;
 }
 
+/* Azul Sprite */
 #azul {
     position: absolute;
     width: 50px;
-    z-index: 999; /* Azul is always in front */
+    z-index: 999;
     pointer-events: none;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     transform: translate(-50%, -90%);
 }
 </style>
@@ -77,49 +86,71 @@ body { margin: 0; background: #000; overflow: hidden; height: 100vh; display: fl
 
 <script>
 const levels = 6;
-const spacing = 58; // Tight spacing for that solid look
+const cubeSize = 60;
+const spacing = 58; // Tight spacing for solid look
 const container = document.getElementById("pyramid-container");
 const azul = document.getElementById("azul");
 
-const startX = window.innerWidth / 2;
-const startY = 100;
+let cubes = [];
 
-for(let r = 0; r < levels; r++) {
-    for(let c = 0; c <= r; c++) {
-        const cube = document.createElement("div");
-        cube.className = "cube";
-        
-        // Create the 3 faces
-        cube.innerHTML = `
-            <div class="face left-side"></div>
-            <div class="face right-side"></div>
-            <div class="face top"></div>
-        `;
+// Function to build pyramid
+function buildPyramid() {
+    container.innerHTML = '';
+    container.appendChild(azul); // Keep Azul on top
+    cubes = [];
 
-        const xPos = startX + (c - r / 2) * spacing;
-        const yPos = startY + (r * spacing * 0.75);
+    const startY = window.innerHeight * 0.15;
+    const centerX = window.innerWidth / 2;
 
-        cube.style.left = (xPos - 30) + "px";
-        cube.style.top = yPos + "px";
-        
-        // IMPORTANT: Higher Z-index for lower rows so they overlap correctly
-        cube.style.zIndex = r;
+    for(let r = 0; r < levels; r++) {
+        for(let c = 0; c <= r; c++) {
+            const cube = document.createElement("div");
+            cube.className = "cube";
+            cube.innerHTML = `
+                <div class="face left-side"></div>
+                <div class="face right-side"></div>
+                <div class="face top"></div>
+            `;
 
-        cube.addEventListener("touchstart", (e) => {
-            e.preventDefault();
-            cube.classList.toggle("compiled");
-            azul.style.left = xPos + "px";
-            azul.style.top = yPos + 10 + "px";
-        });
+            // Position calculation
+            const xPos = centerX + (c - r / 2) * spacing;
+            const yPos = startY + r * spacing * 0.75;
 
-        container.appendChild(cube);
+            cube.style.left = (xPos - cubeSize / 2) + "px";
+            cube.style.top = yPos + "px";
 
-        if(r === 0 && c === 0) {
-            azul.style.left = xPos + "px";
-            azul.style.top = yPos + 10 + "px";
+            // Better z-index for overlap
+            cube.style.zIndex = levels - r + c;
+
+            // Tap / click behavior
+            cube.addEventListener("touchstart", (e) => {
+                e.preventDefault();
+                cube.classList.toggle("compiled");
+                azul.style.left = xPos + "px";
+                azul.style.top = yPos + cubeSize * 0.1 + "px";
+                // Tiny pop animation
+                cube.style.transform = "scale(1.1)";
+                setTimeout(()=>cube.style.transform="scale(1)", 150);
+            });
+
+            container.appendChild(cube);
+            cubes.push(cube);
+
+            // Place Azul initially on top tile
+            if(r === 0 && c === 0) {
+                azul.style.left = xPos + "px";
+                azul.style.top = yPos + cubeSize * 0.1 + "px";
+            }
         }
     }
 }
+
+// Initial build
+buildPyramid();
+
+// Rebuild pyramid on resize to remain centered
+window.addEventListener("resize", buildPyramid);
 </script>
+
 </body>
 </html>
