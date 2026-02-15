@@ -2,22 +2,23 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Q-Code Square Pyramid</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q-Code 3D Pyramid</title>
 <style>
-body { 
-    margin: 0; 
-    background: #000; 
-    overflow: hidden; 
-    height: 100vh; 
-    display: flex; 
-    justify-content: center; 
+body {
+    margin:0;
+    background:#000;
+    overflow:hidden;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    height:100vh;
 }
 
-#pyramid-container { 
-    position: relative; 
-    width: 100%; 
-    height: 100%; 
+#pyramid-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
 }
 
 /* Cube styling */
@@ -25,10 +26,10 @@ body {
     position: absolute;
     width: 60px;
     height: 60px;
-    transition: all 0.2s ease;
+    transform-style: preserve-3d;
+    cursor:pointer;
 }
 
-/* All faces are squares now */
 .face {
     position: absolute;
     width: 100%;
@@ -36,46 +37,45 @@ body {
     box-sizing: border-box;
 }
 
-/* Top face (highlighted) */
+/* Top face — visible diamond */
 .top {
     background: #ff0055;
+    transform: rotateX(60deg) rotateZ(45deg);
     border: 2px solid #ff88aa;
     z-index: 2;
 }
 
-/* Left and Right faces now square, no skew */
+/* Side faces — same size, subtle shading */
 .left-side {
     background: #990033;
-    left: 0;
-    top: 0;
+    transform: rotateY(-90deg);
+    transform-origin: left;
 }
-
 .right-side {
     background: #cc0044;
-    right: 0;
-    top: 0;
+    transform: rotateX(-90deg);
+    transform-origin: bottom;
 }
 
 /* Compiled state glow */
 .cube.compiled .top {
-    background: #00ffff;
-    border: 2px solid #88ffff;
-    box-shadow: 0 0 20px #00ffff;
+    background:#00ffff;
+    border:2px solid #88ffff;
+    box-shadow:0 0 20px #00ffff;
 }
 
-/* Azul sprite */
+/* Azul */
 #azul {
-    position: absolute;
-    width: 50px;
-    z-index: 999;
-    pointer-events: none;
-    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position:absolute;
+    width:50px;
+    z-index:999;
+    pointer-events:none;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     transform: translate(-50%, -90%);
 }
 </style>
 </head>
 <body>
-
 <div id="pyramid-container">
     <img src="azul-tactical.png" id="azul">
 </div>
@@ -83,72 +83,59 @@ body {
 <script>
 const levels = 6;
 const cubeSize = 60;
-const spacing = 60; // same as cubeSize for square cubes
+const spacing = 58; // slight overlap for pyramid stacking
 const container = document.getElementById("pyramid-container");
 const azul = document.getElementById("azul");
-
-let cubes = [];
 
 function buildPyramid() {
     container.innerHTML = '';
     container.appendChild(azul);
-    cubes = [];
 
-    const centerX = window.innerWidth / 2;
-    const startY = window.innerHeight * 0.15;
+    const centerX = window.innerWidth/2;
+    const startY = 100;
 
     for(let r = 0; r < levels; r++) {
         const tilesInRow = r + 1;
         const rowWidth = tilesInRow * spacing;
-        const offsetX = centerX - rowWidth / 2;
+        const offsetX = centerX - rowWidth/2;
 
         for(let c = 0; c < tilesInRow; c++) {
             const cube = document.createElement("div");
-            cube.className = "cube";
+            cube.className="cube";
+            cube.style.width = cubeSize + "px";
+            cube.style.height = cubeSize + "px";
+
             cube.innerHTML = `
                 <div class="face left-side"></div>
                 <div class="face right-side"></div>
                 <div class="face top"></div>
             `;
 
-            const xPos = offsetX + c * spacing;
-            const yPos = startY + r * spacing * 0.6; // slight overlap for pyramid stacking
+            const xPos = offsetX + c*spacing;
+            const yPos = startY + r*spacing*0.6;
 
-            cube.style.left = (xPos - cubeSize / 2) + "px";
+            cube.style.left = (xPos - cubeSize/2) + "px";
             cube.style.top = yPos + "px";
+            cube.style.zIndex = r; // top rows behind, bottom rows in front
 
-            // Top row behind, bottom rows in front
-            cube.style.zIndex = r; 
-
-            // Tap / click behavior
-            cube.addEventListener("touchstart", (e) => {
-                e.preventDefault();
+            cube.addEventListener("click", () => {
                 cube.classList.toggle("compiled");
-
-                // Smooth Azul hop
-                azul.style.transition = "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
                 azul.style.left = xPos + "px";
-                azul.style.top = yPos - cubeSize * 0.2 + "px"; // hop slightly above cube
+                azul.style.top = yPos - cubeSize*0.2 + "px";
             });
 
             container.appendChild(cube);
-            cubes.push(cube);
 
-            // Place Azul initially on top-left cube
-            if(r === 0 && c === 0) {
+            if(r === 0 && c === 0){
                 azul.style.left = xPos + "px";
-                azul.style.top = yPos - cubeSize * 0.2 + "px";
+                azul.style.top = yPos - cubeSize*0.2 + "px";
             }
         }
     }
 }
 
-// Initial build
 buildPyramid();
-
-// Rebuild on resize to stay centered
 window.addEventListener("resize", buildPyramid);
 </script>
-
 </body>
 </html>
