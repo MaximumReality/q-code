@@ -46,19 +46,46 @@
         .cube.right { background: #660022; transform: rotateX(-90deg) translateZ(25px); transform-origin: bottom; }
         .compiled .top { background: var(--neon-cyan) !important; box-shadow: 0 0 15px var(--neon-cyan); }
 
+        #hud-controls {
+            position: fixed;
+            top: env(safe-area-inset-top);
+            right: 20px;
+            display: flex;
+            gap: 15px;
+            padding: 10px;
+            z-index: 10000;
+        }
+
+        .hud-btn { font-size: 1.5rem; cursor: pointer; filter: drop-shadow(0 0 5px var(--neon-cyan)); transition: transform 0.1s; }
+        .hud-btn:active { transform: scale(0.9); }
+
         /* AZUL HACKER SPRITE */
         #azul-sprite {
             position: absolute;
-            width: 60px; /* Adjusted for your tall tactical sprite */
+            width: 60px;
             height: auto;
             z-index: 500;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             pointer-events: none;
-            /* Keeps the sprite vertical even though the container is tilted */
             transform: rotateZ(-45deg) rotateX(-60deg) translateY(-60px); 
         }
 
-        /* MOCHKIL REWARD SCREEN */
+        .hacker-curse, .slang-popup {
+            position: fixed;
+            pointer-events: none;
+            padding: 2px 8px;
+            font-weight: bold;
+            z-index: 3000;
+            animation: glitch-pop 0.6s ease-out forwards;
+        }
+        .hacker-curse { background: #000; border: 1px solid var(--neon-cyan); color: #fff; }
+        .slang-popup { color: var(--neon-pink); text-shadow: 0 0 5px #000; font-size: 1.2rem; }
+
+        @keyframes glitch-pop {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.1); opacity: 0; }
+        }
+
         #reward-screen {
             display: none;
             position: fixed;
@@ -74,7 +101,6 @@
         }
         #mochkil-anim { width: 150px; height: auto; margin-bottom: 10px; }
 
-        /* TICKER & HUD */
         #timer-display { font-size: 1.2rem; color: var(--neon-pink); font-weight: bold; z-index: 100; margin-top: 10px; }
         #news-ticker { position: fixed; bottom: env(safe-area-inset-bottom); width: 100%; background: rgba(0,0,0,0.8); border-top: 1px solid var(--neon-cyan); overflow: hidden; white-space: nowrap; padding: 5px 0; }
         .ticker-content { display: inline-block; padding-left: 100%; animation: scroll-news 20s linear infinite; }
@@ -83,92 +109,132 @@
 </head>
 <body>
 
-    <div id="game-layer">
-        <div id="timer-display">SNACK TIMER: <span id="seconds">0.0</span>s</div>
-        <div class="pyramid-container" id="pyramid">
-            <img src="azul-tactical.png" id="azul-sprite">
-        </div>
+<div id="hud-controls">
+    <span class="hud-btn" onclick="goHome()">🏡</span>
+    <span class="hud-btn" onclick="toggleMusic()">⏯️</span>
+    <span class="hud-btn" onclick="toggleMute()">🔇</span>
+</div>
+
+<div id="game-layer">
+    <div id="timer-display">SNACK TIMER: <span id="seconds">0.0</span>s</div>
+    <div class="pyramid-container" id="pyramid">
+        <img src="azul-tactical.png" id="azul-sprite">
     </div>
+</div>
 
-    <div id="reward-screen">
-        <h2 style="color:var(--neon-pink);">RECIPE UNLOCKED!</h2>
-        <img src="mochkil-idle.png" id="mochkil-anim">
-        <p id="reward-text" style="color:#fff;"></p>
-        <button onclick="location.reload()" style="background:var(--neon-cyan); border:none; padding:10px 20px; font-weight:bold;">NEXT LEVEL</button>
-    </div>
+<div id="reward-screen">
+    <h2 style="color:var(--neon-pink);">RECIPE UNLOCKED!</h2>
+    <img src="mochkil-idle.png" id="mochkil-anim">
+    <p id="reward-text" style="color:#fff;"></p>
+    <button onclick="location.reload()" style="background:var(--neon-cyan); border:none; padding:10px 20px; font-weight:bold;">NEXT LEVEL</button>
+</div>
 
-    <div id="news-ticker">
-        <div class="ticker-content" id="ticker-text">LOADING MAXIMUM REALITY...</div>
-    </div>
+<div id="news-ticker">
+    <div class="ticker-content" id="ticker-text">LOADING MAXIMUM REALITY...</div>
+</div>
 
-    <script>
-        const newsData = ["AZUL BREACHES SECTOR 7", "MOCHKIL'S SNACK ATTACK LIVE", "LORI UPDATES Q-CODE"];
-        const pyramidData = [
-            {r: 0, c: 0, id: "m0"},
-            {r: 1, c: 0, id: "n1"}, {r: 1, c: 1, id: "n2"},
-            {r: 2, c: 0, id: "n3"}, {r: 2, c: 1, id: "n4"}, {r: 2, c: 2, id: "n5"}
-        ];
+<script>
+    const newsData = ["AZUL BREACHES SECTOR 7", "MOCHKIL'S SNACK ATTACK LIVE", "LORI UPDATES Q-CODE"];
+    const pyramidData = [
+        {r: 0, c: 0, id: "m0"},
+        {r: 1, c: 0, id: "n1"}, {r: 1, c: 1, id: "n2"},
+        {r: 2, c: 0, id: "n3"}, {r: 2, c: 1, id: "n4"}, {r: 2, c: 2, id: "n5"}
+    ];
+    const qbertCurses = ["@!#?@!", "??!!#", "#$%@!", "G-L-I-T-C-H"];
+    const mochkilSlang = ["Bussin!", "No Cap.", "Bet.", "W Hacker.", "Real."];
 
-        const container = document.getElementById('pyramid');
-        const azul = document.getElementById('azul-sprite');
-        const timerSpan = document.getElementById('seconds');
-        let gameActive = false, startTime, timerInterval;
+    const container = document.getElementById('pyramid');
+    const azul = document.getElementById('azul-sprite');
+    const timerSpan = document.getElementById('seconds');
+    const bgMusic = new Audio('a-sunny-day.mp3');
+    bgMusic.loop = true;
 
-        // Render Grid
-        pyramidData.forEach(d => {
-            const wrap = document.createElement('div');
-            wrap.className = 'cube-wrapper';
-            wrap.id = d.id;
-            wrap.dataset.compiled = "false";
-            const x = (d.c - d.r) * 45;
-            const y = (d.c + d.r) * 45;
-            wrap.style.left = `calc(50% - 25px + ${x}px)`;
-            wrap.style.top = `${y}px`;
-            wrap.innerHTML = `<div class="cube top" onclick="handleHop('${d.id}')"></div><div class="cube left"></div><div class="cube right"></div>`;
-            container.appendChild(wrap);
-        });
+    let gameActive = false, startTime, timerInterval, isMuted = false, isPaused = false;
 
-        function handleHop(id) {
-            if(!gameActive) {
-                gameActive = true;
-                startTime = Date.now();
-                timerInterval = setInterval(() => { timerSpan.innerText = ((Date.now()-startTime)/1000).toFixed(1); }, 100);
-            }
-            const target = document.getElementById(id);
-            
-            // Move Azul to the target cube
-            azul.style.left = target.style.left;
-            azul.style.top = target.style.top;
+    // Render Grid
+    pyramidData.forEach(d => {
+        const wrap = document.createElement('div');
+        wrap.className = 'cube-wrapper';
+        wrap.id = d.id;
+        wrap.dataset.compiled = "false";
+        const x = (d.c - d.r) * 45;
+        const y = (d.c + d.r) * 45;
+        wrap.style.left = `calc(50% - 25px + ${x}px)`;
+        wrap.style.top = `${y}px`;
+        wrap.innerHTML = `<div class="cube top" onclick="handleHop('${d.id}')"></div><div class="cube left"></div><div class="cube right"></div>`;
+        container.appendChild(wrap);
+    });
 
-            target.classList.toggle('compiled');
-            target.dataset.compiled = target.dataset.compiled === "true" ? "false" : "true";
-            checkWin();
+    function handleHop(id) {
+        if(!gameActive) {
+            gameActive = true;
+            if(!isPaused) bgMusic.play().catch(e => console.log("Audio active."));
+            startTime = Date.now();
+            timerInterval = setInterval(() => { 
+                timerSpan.innerText = ((Date.now()-startTime)/1000).toFixed(1); 
+            }, 100);
+        }
+        
+        const target = document.getElementById(id);
+        const e = window.event;
+        const tapX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+        const tapY = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+
+        // Randomize: Azul curses vs Mochkil comments
+        if (Math.random() > 0.8) {
+            triggerPopUp(tapX, tapY, qbertCurses, 'hacker-curse');
+        } else {
+            triggerPopUp(tapX, tapY, mochkilSlang, 'slang-popup');
         }
 
-        function checkWin() {
-            const all = Array.from(document.querySelectorAll('.cube-wrapper')).every(c => c.dataset.compiled === "true");
-            if (all) {
-                clearInterval(timerInterval);
-                showMochkilVictory();
-            }
+        azul.style.left = target.style.left;
+        azul.style.top = target.style.top;
+        target.classList.toggle('compiled');
+        target.dataset.compiled = target.dataset.compiled === "true" ? "false" : "true";
+        checkWin();
+    }
+
+    function triggerPopUp(x, y, list, className) {
+        const bubble = document.createElement('div');
+        bubble.className = className;
+        bubble.innerText = list[Math.floor(Math.random() * list.length)];
+        bubble.style.left = `${x}px`;
+        bubble.style.top = `${y}px`;
+        document.body.appendChild(bubble);
+        setTimeout(() => bubble.remove(), 600);
+    }
+
+    function checkWin() {
+        const all = Array.from(document.querySelectorAll('.cube-wrapper')).every(c => c.dataset.compiled === "true");
+        if (all) {
+            clearInterval(timerInterval);
+            showMochkilVictory();
         }
+    }
 
-        function showMochkilVictory() {
-            const modal = document.getElementById('reward-screen');
-            const img = document.getElementById('mochkil-anim');
-            modal.style.display = 'block';
-            
-            // The Animation Loop: Toggle between image 1 and 2
-            let toggle = true;
-            setInterval(() => {
-                img.src = toggle ? 'mochkil-yes.png' : 'mochkil-idle.png';
-                toggle = !toggle;
-            }, 300);
+    function showMochkilVictory() {
+        const modal = document.getElementById('reward-screen');
+        const img = document.getElementById('mochkil-anim');
+        modal.style.display = 'block';
+        let toggle = true;
+        setInterval(() => {
+            img.src = toggle ? 'mochkil-yes.png' : 'mochkil-idle.png';
+            toggle = !toggle;
+        }, 300);
+        document.getElementById('reward-text').innerText = "Tuna Tacos: SECURED. No cap, that was bussin.";
+    }
 
-            document.getElementById('reward-text').innerText = "Tuna Tacos: SECURED. No cap, that was bussin.";
-        }
+    function toggleMusic() { 
+        if (bgMusic.paused) { bgMusic.play(); isPaused = false; } 
+        else { bgMusic.pause(); isPaused = true; } 
+    }
+    function toggleMute() { 
+        isMuted = !isMuted; bgMusic.muted = isMuted; 
+        document.querySelector('[onclick="toggleMute()"]').style.opacity = isMuted ? "0.5" : "1";
+    }
+    function goHome() { window.location.href = "https://MaximumReality.xyz"; }
 
-        document.getElementById('ticker-text').innerText = newsData.join(" | ");
-    </script>
+    document.getElementById('ticker-text').innerText = newsData.join(" | ");
+</script>
 </body>
 </html>
