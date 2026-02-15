@@ -1,84 +1,174 @@
-Game Master Template
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-   t
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
     <title>THE Q-CODE</title>
 
     <style>
         :root {
             --neon-pink: #ff00ff;
             --neon-cyan: #00ffff;
+            --corrupted: #ff0055;
         }
         body {
-    margin: 0;
-    /* Replace 'clean-poster.PNG' with your actual file name */
-    background: url('clean-poster.PNG') no-repeat center center fixed;
-    background-size: cover;
-    color: var(--neon-cyan);
-    font-family: 'Courier New', monospace;
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    height: 100vh;
-    overflow: hidden;
-}
-
-/* Add a slight dark overlay so the game cubes pop */
-#game-layer::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.4); /* 40% darkness */
-    z-index: -1;
-}
-
-        /* Keep your game container relative for z-index layering */
-        #game-layer {
-            position: relative;
-            z-index: 10;
+            margin: 0;
+            background: url('clean-poster.PNG') no-repeat center center fixed;
+            background-size: cover;
+            color: var(--neon-cyan);
+            font-family: 'Courier New', monospace;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
+
+        #game-layer { position: relative; z-index: 10; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; }
+
+        /* 3D ENGINE */
+        .pyramid-container {
+            position: relative;
+            width: 300px;
+            height: 350px;
+            margin-top: 40px;
+            transform: rotateX(60deg) rotateZ(45deg);
+            transform-style: preserve-3d;
+        }
+        .cube-wrapper { position: absolute; transform-style: preserve-3d; width: 50px; height: 50px; transition: all 0.3s ease; }
+        .cube { position: absolute; width: 50px; height: 50px; transition: background 0.3s ease; }
+        .cube.top { background: var(--corrupted); transform: translateZ(50px); border: 1px solid #fff; }
+        .cube.left { background: #990033; transform: rotateY(-90deg) translateZ(25px); transform-origin: left; }
+        .cube.right { background: #660022; transform: rotateX(-90deg) translateZ(25px); transform-origin: bottom; }
+        .compiled .top { background: var(--neon-cyan) !important; box-shadow: 0 0 15px var(--neon-cyan); }
+
+        /* AZUL HACKER SPRITE */
+        #azul-sprite {
+            position: absolute;
+            width: 60px; /* Adjusted for your tall tactical sprite */
+            height: auto;
+            z-index: 500;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+            /* Keeps the sprite vertical even though the container is tilted */
+            transform: rotateZ(-45deg) rotateX(-60deg) translateY(-60px); 
+        }
+
+        /* MOCHKIL REWARD SCREEN */
+        #reward-screen {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            background: rgba(0,0,0,0.95);
+            border: 3px solid var(--neon-cyan);
+            z-index: 9000;
+            text-align: center;
+            padding: 20px;
+        }
+        #mochkil-anim { width: 150px; height: auto; margin-bottom: 10px; }
+
+        /* TICKER & HUD */
+        #timer-display { font-size: 1.2rem; color: var(--neon-pink); font-weight: bold; z-index: 100; margin-top: 10px; }
+        #news-ticker { position: fixed; bottom: env(safe-area-inset-bottom); width: 100%; background: rgba(0,0,0,0.8); border-top: 1px solid var(--neon-cyan); overflow: hidden; white-space: nowrap; padding: 5px 0; }
+        .ticker-content { display: inline-block; padding-left: 100%; animation: scroll-news 20s linear infinite; }
+        @keyframes scroll-news { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
     </style>
 </head>
 <body>
 
-<span onclick="toggleAbout()" style="cursor:pointer; font-size:1.2rem; filter:drop-shadow(0 0 5px var(--neon-pink));">🛡️</span>
-
     <div id="game-layer">
+        <div id="timer-display">SNACK TIMER: <span id="seconds">0.0</span>s</div>
+        <div class="pyramid-container" id="pyramid">
+            <img src="azul-tactical.png" id="azul-sprite">
         </div>
+    </div>
 
-<div id="about-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:80%; max-width:400px; background:#000; border:2px solid var(--neon-pink); padding:20px; text-align:center; z-index:5000; box-shadow:0 0 30px var(--neon-pink);">
-    <img src="maximum-reality-badge.png" style="width:120px; margin-bottom:15px;">
-    <h2 style="color:var(--neon-cyan); margin:0;">ORIGINAL REALITY</h2>
-    <p style="font-size:0.8rem; line-height:1.4;">Created by <b>Lori</b> on an iPhone 14 Pro Max. <br> Part of the Maximum Reality Universe.</p>
-    <p style="font-size:0.7rem; color:var(--neon-pink);">[ f2p | secure | authentic ]</p>
-    <button onclick="toggleAbout()" style="background:var(--neon-cyan); border:none; padding:10px 20px; font-weight:bold; cursor:pointer;">RETURN TO GAME</button>
-</div>
+    <div id="reward-screen">
+        <h2 style="color:var(--neon-pink);">RECIPE UNLOCKED!</h2>
+        <img src="mochkil-idle.png" id="mochkil-anim">
+        <p id="reward-text" style="color:#fff;"></p>
+        <button onclick="location.reload()" style="background:var(--neon-cyan); border:none; padding:10px 20px; font-weight:bold;">NEXT LEVEL</button>
+    </div>
 
+    <div id="news-ticker">
+        <div class="ticker-content" id="ticker-text">LOADING MAXIMUM REALITY...</div>
+    </div>
 
-    <script>d
-            .catch(err => console.log('Sync Failed'));
+    <script>
+        const newsData = ["AZUL BREACHES SECTOR 7", "MOCHKIL'S SNACK ATTACK LIVE", "LORI UPDATES Q-CODE"];
+        const pyramidData = [
+            {r: 0, c: 0, id: "m0"},
+            {r: 1, c: 0, id: "n1"}, {r: 1, c: 1, id: "n2"},
+            {r: 2, c: 0, id: "n3"}, {r: 2, c: 1, id: "n4"}, {r: 2, c: 2, id: "n5"}
+        ];
+
+        const container = document.getElementById('pyramid');
+        const azul = document.getElementById('azul-sprite');
+        const timerSpan = document.getElementById('seconds');
+        let gameActive = false, startTime, timerInterval;
+
+        // Render Grid
+        pyramidData.forEach(d => {
+            const wrap = document.createElement('div');
+            wrap.className = 'cube-wrapper';
+            wrap.id = d.id;
+            wrap.dataset.compiled = "false";
+            const x = (d.c - d.r) * 45;
+            const y = (d.c + d.r) * 45;
+            wrap.style.left = `calc(50% - 25px + ${x}px)`;
+            wrap.style.top = `${y}px`;
+            wrap.innerHTML = `<div class="cube top" onclick="handleHop('${d.id}')"></div><div class="cube left"></div><div class="cube right"></div>`;
+            container.appendChild(wrap);
         });
-      }
 
-function toggleAbout() {
-    const modal = document.getElementById('about-modal');
-    modal.style.display = modal.style.display === 'none' ? 'block' : 'none';
-}
+        function handleHop(id) {
+            if(!gameActive) {
+                gameActive = true;
+                startTime = Date.now();
+                timerInterval = setInterval(() => { timerSpan.innerText = ((Date.now()-startTime)/1000).toFixed(1); }, 100);
+            }
+            const target = document.getElementById(id);
+            
+            // Move Azul to the target cube
+            azul.style.left = target.style.left;
+            azul.style.top = target.style.top;
 
+            target.classList.toggle('compiled');
+            target.dataset.compiled = target.dataset.compiled === "true" ? "false" : "true";
+            checkWin();
+        }
+
+        function checkWin() {
+            const all = Array.from(document.querySelectorAll('.cube-wrapper')).every(c => c.dataset.compiled === "true");
+            if (all) {
+                clearInterval(timerInterval);
+                showMochkilVictory();
+            }
+        }
+
+        function showMochkilVictory() {
+            const modal = document.getElementById('reward-screen');
+            const img = document.getElementById('mochkil-anim');
+            modal.style.display = 'block';
+            
+            // The Animation Loop: Toggle between image 1 and 2
+            let toggle = true;
+            setInterval(() => {
+                img.src = toggle ? 'mochkil-yes.png' : 'mochkil-idle.png';
+                toggle = !toggle;
+            }, 300);
+
+            document.getElementById('reward-text').innerText = "Tuna Tacos: SECURED. No cap, that was bussin.";
+        }
+
+        document.getElementById('ticker-text').innerText = newsData.join(" | ");
     </script>
 </body>
 </html>
-
-
-
-
-
