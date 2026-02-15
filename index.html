@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Q-Code Pyramid Max Reality</title>
+<title>Q-Code Isometric Pyramid</title>
 <style>
   :root {
     --neon-pink: #ff00ff;
@@ -16,6 +16,7 @@
     overflow: hidden;
     font-family: 'Courier New', monospace;
   }
+
   #hud-controls {
     position: fixed;
     top: 10px;
@@ -70,11 +71,12 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
 <script>
-let levelsData = [6,5,4,6]; // multiple pyramid levels
+let levelsData = [6,5,4,6];
 let currentLevel = 0;
 let cubes = [];
 let azul, azulTarget, popFrames = 0;
-let slangPhrases = ["Bussin!", "No Cap.", "Bet.", "W Hacker.", "Real!"];
+let azulCurses = ["@!#?@", "??!!#", "#$%@!", "G-L-I-T-C-H"];
+let mochkilSlang = ["Bussin!", "No Cap.", "Bet.", "W Hacker.", "Real!"];
 
 const bgMusic = document.getElementById('bgMusic');
 const hopSound = document.getElementById('hopSound');
@@ -84,14 +86,12 @@ let isMuted = false;
 function toggleMusic(){ bgMusic.paused ? bgMusic.play() : bgMusic.pause(); }
 function toggleMute(){ isMuted = !isMuted; bgMusic.muted = isMuted; hopSound.muted = isMuted; victorySound.muted = isMuted; }
 function goHome(){ window.location.href="https://MaximumReality.xyz"; }
-
 function nextLevel(){
   currentLevel = (currentLevel +1) % levelsData.length;
   setupPyramid(currentLevel);
   document.getElementById('reward-screen').style.display='none';
 }
 
-// p5 sketch
 new p5((sketch)=>{
   let cubeSize = 50;
 
@@ -100,43 +100,41 @@ new p5((sketch)=>{
     canvas.parent('p5-container');
     sketch.noStroke();
     setupPyramid(currentLevel);
-
-    // Azul starting position
-    azul = { x:cubes[cubes.length-1][0].x+cubeSize/2, y:cubes[cubes.length-1][0].y+cubeSize/2, yOffset:0 };
+    azul = { x:cubes[0][0].x, y:cubes[0][0].y, yOffset:0 };
     azulTarget = {...azul};
   }
 
   sketch.draw = function(){
     sketch.clear();
-    // Draw pyramid back-to-front
+    // Draw back-to-front
     for(let i=cubes.length-1;i>=0;i--){
       for(let j=0;j<cubes[i].length;j++){
-        drawCube(cubes[i][j], sketch);
+        drawIsoCube(cubes[i][j], sketch);
       }
     }
 
-    // Azul hop animation
+    // Azul sprite
     azul.x += (azulTarget.x-azul.x)*0.2;
     azul.y += (azulTarget.y-azul.y)*0.2;
-    azul.yOffset = popFrames>0 ? 5*Math.sin(Math.PI*popFrames/10):0;
+    azul.yOffset = popFrames>0 ? 10*Math.sin(Math.PI*popFrames/10):0;
 
-    // Azul shadow
-    sketch.fill(0,100);
-    sketch.ellipse(azul.x, azul.y + cubeSize*0.3, cubeSize*0.9, cubeSize*0.4);
-
-    // Azul body
-    sketch.fill(0,200,255);
-    sketch.ellipse(azul.x, azul.y - cubeSize*0.15 - azul.yOffset, cubeSize*0.8, cubeSize*0.8);
+    sketch.imageMode(sketch.CENTER);
+    sketch.image(sketch.loadImage('azul-tactical.png'), azul.x, azul.y - cubeSize*0.15 - azul.yOffset, cubeSize, cubeSize);
 
     if(popFrames>0) popFrames--;
 
-    // Slang pop-up
+    // Pop-ups
     cubes.forEach(row=>row.forEach(cube=>{
       if(cube.pop){
-        sketch.fill('#ff00ff');
         sketch.textSize(16);
         sketch.textAlign(sketch.CENTER);
-        sketch.text(slangPhrases[Math.floor(Math.random()*slangPhrases.length)], cube.x+cubeSize/2, cube.y-10-popFrames);
+        if(cube.fromMochkil){
+          sketch.fill('#ff00ff');
+          sketch.text(mochkilSlang[Math.floor(Math.random()*mochkilSlang.length)], cube.x, cube.y - 10 - popFrames);
+        } else {
+          sketch.fill('#00ffff');
+          sketch.text(azulCurses[Math.floor(Math.random()*azulCurses.length)], cube.x, cube.y - 10 - popFrames);
+        }
         cube.pop=false;
       }
     }));
@@ -148,12 +146,13 @@ new p5((sketch)=>{
     for(let i=0;i<cubes.length;i++){
       for(let j=0;j<cubes[i].length;j++){
         let cube=cubes[i][j];
-        if(sketch.mouseX>cube.x && sketch.mouseX<cube.x+cubeSize &&
-           sketch.mouseY>cube.y && sketch.mouseY<cube.y+cubeSize){
+        if(sketch.mouseX>cube.x-cubeSize/2 && sketch.mouseX<cube.x+cubeSize/2 &&
+           sketch.mouseY>cube.y-cubeSize/4 && sketch.mouseY<cube.y+cubeSize/4){
           cube.compiled=!cube.compiled;
           cube.pop=true;
-          azulTarget.x=cube.x+cubeSize/2;
-          azulTarget.y=cube.y+cubeSize/2;
+          cube.fromMochkil = Math.random() < 0.3; // 30% chance slang from Mochkil
+          azulTarget.x=cube.x;
+          azulTarget.y=cube.y;
           popFrames=10;
           if(!isMuted) hopSound.play();
         }
@@ -161,21 +160,23 @@ new p5((sketch)=>{
     }
   }
 
-  function drawCube(cube, s){
-    let x=cube.x,y=cube.y;
+  function drawIsoCube(cube, s){
+    let x=cube.x, y=cube.y;
     let topColor=cube.compiled?s.color(0,255,255):s.color(255,0,85);
     let leftColor=cube.compiled?s.color(0,180,180):s.color(153,0,51);
     let rightColor=cube.compiled?s.color(0,200,200):s.color(204,0,68);
 
     s.push(); s.translate(x,y);
-    if(cube.compiled){ s.stroke(0,255,255); s.strokeWeight(2); } else s.noStroke();
-    s.fill(topColor);
-    s.quad(cubeSize/2,0,cubeSize,cubeSize/4,cubeSize/2,cubeSize/2,0,cubeSize/4);
     s.noStroke();
+    // Top
+    s.fill(topColor);
+    s.quad(0, -cubeSize/2, cubeSize/2, -cubeSize/4, 0, 0, -cubeSize/2, -cubeSize/4);
+    // Left
     s.fill(leftColor);
-    s.quad(0,cubeSize/4,cubeSize/2,cubeSize/2,cubeSize/2,cubeSize,0,cubeSize*3/4);
+    s.quad(-cubeSize/2, -cubeSize/4, 0, 0, 0, cubeSize/2, -cubeSize/2, cubeSize/4);
+    // Right
     s.fill(rightColor);
-    s.quad(cubeSize/2,cubeSize/2,cubeSize,cubeSize/4,cubeSize,cubeSize*3/4,cubeSize/2,cubeSize);
+    s.quad(0,0, cubeSize/2, -cubeSize/4, cubeSize/2, cubeSize/4, 0, cubeSize/2);
     s.pop();
   }
 
@@ -187,20 +188,19 @@ new p5((sketch)=>{
   }
 
   function setupPyramid(levelIndex){
-    cubes = [];
-    let lvl = levelsData[levelIndex];
-    for(let i = lvl - 1; i >= 0; i--){   // <-- flip row order
-        let row = [];
-        for(let j = 0; j <= i; j++){
-            let x = sketch.width/2 + (j - i/2) * cubeSize;
-            let y = sketch.height - (lvl - i) * (cubeSize * 0.75); // stack from top
-            row.push({x, y, compiled:false, pop:false});
-        }
-        cubes.push(row);
+    cubes=[];
+    let lvl=levelsData[levelIndex];
+    for(let i=lvl-1;i>=0;i--){   // tall row at top
+      let row=[];
+      for(let j=0;j<=i;j++){
+        let x = sketch.width/2 + (j - i/2) * cubeSize;
+        let y = sketch.height - (lvl - i) * (cubeSize * 0.75);
+        row.push({x,y,compiled:false,pop:false});
+      }
+      cubes.push(row);
     }
-}
-   
-  
+  }
+
 }, 'p5-container');
 </script>
 </body>
