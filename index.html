@@ -187,17 +187,19 @@ new p5((sketch)=>{
   }
 
   function setupPyramid(levelIndex){
-    cubes=[];
-    let lvl=levelsData[levelIndex];
-    for(let i=0;i<lvl;i++){
-      let row=[];
-      for(let j=0;j<=i;j++){
-        let x=sketch.width/2 - (i*cubeSize)/2 + j*cubeSize;
-        let y=sketch.height - (i+1)*(cubeSize*0.75);
-        row.push({x,y,compiled:false,pop:false});
-      }
-      cubes.push(row);
+    cubes = [];
+    let lvl = levelsData[levelIndex];
+    for(let i = lvl - 1; i >= 0; i--){   // <-- flip row order
+        let row = [];
+        for(let j = 0; j <= i; j++){
+            let x = sketch.width/2 + (j - i/2) * cubeSize;
+            let y = sketch.height - (lvl - i) * (cubeSize * 0.75); // stack from top
+            row.push({x, y, compiled:false, pop:false});
+        }
+        cubes.push(row);
     }
+}
+   
   }
 }, 'p5-container');
 </script>
