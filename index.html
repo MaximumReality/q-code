@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Q-Code Pyramid</title>
+<title>Q-Code Pyramid Fixed</title>
 <style>
 body{
     margin:0;
@@ -15,73 +15,83 @@ body{
     font-family:monospace;
 }
 
-.tile{
-    position:absolute;
-    width:50px;
-    height:25px;
-    background:#ff0055;
-    transform:skewY(-26.565deg) scaleY(0.5);
-    transform-origin:center;
-    cursor:pointer;
-    transition:all .2s ease;
-    border-top:2px solid #ff88aa;
-    box-sizing:border-box;
+/* The Container keeps the whole pyramid centered */
+#pyramid-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
 }
 
-.tile.compiled{
-    background:#00ffff;
-    border-top:2px solid #88ffff;
-    box-shadow:0 0 15px #00ffff;
+.tile {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: #ff0055;
+    /* This creates the classic diamond top look */
+    transform: rotateX(60deg) rotateZ(45deg); 
+    cursor: pointer;
+    transition: all .2s ease;
+    border: 2px solid #ff88aa;
+    box-sizing: border-box;
 }
 
-#azul{
-    position:absolute;
-    width:30px;
-    pointer-events:none;
-    transition:all .2s ease;
+.tile.compiled {
+    background: #00ffff;
+    border: 2px solid #88ffff;
+    box-shadow: 0 0 25px #00ffff;
+}
+
+#azul {
+    position: absolute;
+    width: 50px;
+    z-index: 100; /* Always stay on top of the tiles */
+    pointer-events: none;
+    transition: all .2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    /* Adjusting Azul's visual center so he sits on the tiles correctly */
+    transform: translate(-50%, -100%); 
 }
 </style>
 </head>
 <body>
 
-<img src="azul-tactical.png" id="azul">
+<div id="pyramid-container">
+    <img src="azul-tactical.png" id="azul">
+</div>
 
 <script>
-const pyramidLevels = 6; // total rows
-const cubeWidth = 50;
-const cubeHeight = 25;
-const sin30 = 12.5;   // vertical offset half cube
-const cos30 = 25;     // horizontal offset half cube
-
+const pyramidLevels = 6;
+const cubeSize = 50; // The visual spacing
+const container = document.getElementById("pyramid-container");
 const azul = document.getElementById("azul");
-const centerX = window.innerWidth / 2;
-const startY = 80;
+
+const startX = window.innerWidth / 2;
+const startY = 150;
 
 for(let r = 0; r < pyramidLevels; r++){
-    const tilesInRow = r + 1;
-    const rowWidth = tilesInRow * cubeWidth;
-    const offsetX = centerX - rowWidth/2;
-
-    for(let c = 0; c < tilesInRow; c++){
+    for(let c = 0; c <= r; c++){
         const tile = document.createElement("div");
         tile.className = "tile";
 
-        // Compute X/Y based on Q*bert logic
-        const x = offsetX + c * cubeWidth;
-        const y = startY + r * sin30 + r * (cubeHeight - sin30);
+        /* ISOMETRIC MATH:
+           X shifts left/right based on column AND row to center it.
+           Y shifts down for every row.
+        */
+        const x = startX + (c - r / 2) * cubeSize;
+        const y = startY + (r * (cubeSize * 0.75));
 
-        tile.style.left = x + "px";
+        tile.style.left = x - (cubeSize / 2) + "px";
         tile.style.top = y + "px";
 
         tile.addEventListener("click", () => {
             tile.classList.add("compiled");
 
-            // Position Azul on top
-            azul.style.left = x + cubeWidth/2 - azul.offsetWidth/2 + "px";
-            azul.style.top = y - azul.offsetHeight + "px";
+            // Move Azul to the tile's coordinates
+            // We add an offset to "land" him right on the diamond
+            azul.style.left = x + "px";
+            azul.style.top = y + 10 + "px"; 
         });
 
-        document.body.appendChild(tile);
+        container.appendChild(tile);
     }
 }
 </script>
