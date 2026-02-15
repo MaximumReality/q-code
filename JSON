@@ -1,0 +1,12 @@
+{
+  "level_name": "Mochkil's Sous-Vide Unlock",
+  "grid_type": "isometric_pyramid",
+  "dimensions": { "rows": 7 },
+  "colors": {
+    "state_0": "#ff0055", // Corrupted Red
+    "state_1": "#00f2ff"  // Compiled Cyan
+  },
+  "rewards": [
+    { "item": "Molecular Tuna Recipe", "unlock_at": "100%_compiled" }
+  ]
+}
