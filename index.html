@@ -47,33 +47,38 @@ body{
 <img src="azul-tactical.png" id="azul">
 
 <script>
-const levels = 6; // total rows
-const tileW = 50;
-const tileH = 25;
-const azul = document.getElementById("azul");
+const pyramidLevels = 6; // total rows
+const cubeWidth = 50;
+const cubeHeight = 25;
+const sin30 = 12.5;   // vertical offset half cube
+const cos30 = 25;     // horizontal offset half cube
 
+const azul = document.getElementById("azul");
 const centerX = window.innerWidth / 2;
 const startY = 80;
 
-for(let r=0;r<levels;r++){
+for(let r = 0; r < pyramidLevels; r++){
     const tilesInRow = r + 1;
-    const rowWidth = tilesInRow * tileW;
+    const rowWidth = tilesInRow * cubeWidth;
     const offsetX = centerX - rowWidth/2;
 
-    for(let c=0;c<tilesInRow;c++){
+    for(let c = 0; c < tilesInRow; c++){
         const tile = document.createElement("div");
-        tile.className="tile";
+        tile.className = "tile";
 
-        const x = offsetX + c*tileW;
-        const y = startY + r * (tileH/2);
+        // Compute X/Y based on Q*bert logic
+        const x = offsetX + c * cubeWidth;
+        const y = startY + r * sin30 + r * (cubeHeight - sin30);
 
         tile.style.left = x + "px";
         tile.style.top = y + "px";
 
-        tile.addEventListener("click",()=>{
+        tile.addEventListener("click", () => {
             tile.classList.add("compiled");
-            azul.style.left = x + tileW/2 - 15 + "px";
-            azul.style.top = y - 15 + "px";
+
+            // Position Azul on top
+            azul.style.left = x + cubeWidth/2 - azul.offsetWidth/2 + "px";
+            azul.style.top = y - azul.offsetHeight + "px";
         });
 
         document.body.appendChild(tile);
