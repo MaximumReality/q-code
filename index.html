@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Q-Code Solid Pyramid</title>
+<title>Q-Code Isometric Pyramid</title>
 <style>
 body { 
     margin: 0; 
@@ -21,7 +21,7 @@ body {
     perspective: 1000px; 
 }
 
-/* The Cube Container */
+/* Cube container */
 .cube {
     position: absolute;
     width: 60px;
@@ -29,7 +29,7 @@ body {
     transition: all 0.2s ease;
 }
 
-/* Common style for all faces */
+/* Common face styling */
 .face {
     position: absolute;
     width: 100%;
@@ -47,7 +47,7 @@ body {
 
 /* Sides for depth */
 .left-side {
-    background: #990033; 
+    background: #990033;
     transform: skewY(30deg) scaleX(0.5) translate(-50%, 50%);
     left: 0;
     top: 15px;
@@ -87,23 +87,26 @@ body {
 <script>
 const levels = 6;
 const cubeSize = 60;
-const spacing = 58; // Tight spacing for solid look
+const spacing = 58;
 const container = document.getElementById("pyramid-container");
 const azul = document.getElementById("azul");
 
 let cubes = [];
 
-// Function to build pyramid
 function buildPyramid() {
     container.innerHTML = '';
-    container.appendChild(azul); // Keep Azul on top
+    container.appendChild(azul);
     cubes = [];
 
-    const startY = window.innerHeight * 0.15;
     const centerX = window.innerWidth / 2;
+    const startY = window.innerHeight * 0.15;
 
     for(let r = 0; r < levels; r++) {
-        for(let c = 0; c <= r; c++) {
+        const tilesInRow = r + 1;
+        const rowWidth = tilesInRow * spacing;
+        const offsetX = centerX - rowWidth / 2;
+
+        for(let c = 0; c < tilesInRow; c++) {
             const cube = document.createElement("div");
             cube.className = "cube";
             cube.innerHTML = `
@@ -112,17 +115,18 @@ function buildPyramid() {
                 <div class="face top"></div>
             `;
 
-            // Position calculation
-            const xPos = centerX + (c - r / 2) * spacing;
+            // X = row-centered
+            const xPos = offsetX + c * spacing;
+            // Y = higher row higher (back), lower rows lower (front)
             const yPos = startY + r * spacing * 0.75;
 
             cube.style.left = (xPos - cubeSize / 2) + "px";
             cube.style.top = yPos + "px";
 
-            // Better z-index for overlap
-            cube.style.zIndex = levels - r + c;
+            // Z-index: top row behind, lower rows in front
+            cube.style.zIndex = r; 
 
-            // Tap / click behavior
+            // Touch / click behavior
             cube.addEventListener("touchstart", (e) => {
                 e.preventDefault();
                 cube.classList.toggle("compiled");
@@ -148,7 +152,7 @@ function buildPyramid() {
 // Initial build
 buildPyramid();
 
-// Rebuild pyramid on resize to remain centered
+// Rebuild on resize to stay centered
 window.addEventListener("resize", buildPyramid);
 </script>
 
