@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Q-Code Isometric Pyramid</title>
+<title>Q-Code Square Pyramid</title>
 <style>
 body { 
     margin: 0; 
@@ -18,10 +18,9 @@ body {
     position: relative; 
     width: 100%; 
     height: 100%; 
-    perspective: 1000px; 
 }
 
-/* Cube container */
+/* Cube styling */
 .cube {
     position: absolute;
     width: 60px;
@@ -29,7 +28,7 @@ body {
     transition: all 0.2s ease;
 }
 
-/* Common face styling */
+/* All faces are squares now */
 .face {
     position: absolute;
     width: 100%;
@@ -37,37 +36,34 @@ body {
     box-sizing: border-box;
 }
 
-/* Top Diamond (Azul stands on) */
+/* Top face (highlighted) */
 .top {
     background: #ff0055;
-    transform: rotateX(60deg) rotateZ(45deg);
     border: 2px solid #ff88aa;
     z-index: 2;
 }
 
-/* Sides for depth */
+/* Left and Right faces now square, no skew */
 .left-side {
     background: #990033;
-    transform: skewY(30deg) scaleX(0.5) translate(-50%, 50%);
     left: 0;
-    top: 15px;
+    top: 0;
 }
 
 .right-side {
     background: #cc0044;
-    transform: skewY(-30deg) scaleX(0.5) translate(50%, 50%);
     right: 0;
-    top: 15px;
+    top: 0;
 }
 
-/* Compiled State - Neon Glow */
+/* Compiled state glow */
 .cube.compiled .top {
     background: #00ffff;
     border: 2px solid #88ffff;
     box-shadow: 0 0 20px #00ffff;
 }
 
-/* Azul Sprite */
+/* Azul sprite */
 #azul {
     position: absolute;
     width: 50px;
@@ -87,7 +83,7 @@ body {
 <script>
 const levels = 6;
 const cubeSize = 60;
-const spacing = 58;
+const spacing = 60; // same as cubeSize for square cubes
 const container = document.getElementById("pyramid-container");
 const azul = document.getElementById("azul");
 
@@ -115,35 +111,33 @@ function buildPyramid() {
                 <div class="face top"></div>
             `;
 
-            // X = row-centered
             const xPos = offsetX + c * spacing;
-            // Y = higher row higher (back), lower rows lower (front)
-            const yPos = startY + r * spacing * 0.75;
+            const yPos = startY + r * spacing * 0.6; // slight overlap for pyramid stacking
 
             cube.style.left = (xPos - cubeSize / 2) + "px";
             cube.style.top = yPos + "px";
 
-            // Z-index: top row behind, lower rows in front
+            // Top row behind, bottom rows in front
             cube.style.zIndex = r; 
 
-            // Touch / click behavior
+            // Tap / click behavior
             cube.addEventListener("touchstart", (e) => {
                 e.preventDefault();
                 cube.classList.toggle("compiled");
+
+                // Smooth Azul hop
+                azul.style.transition = "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
                 azul.style.left = xPos + "px";
-                azul.style.top = yPos + cubeSize * 0.1 + "px";
-                // Tiny pop animation
-                cube.style.transform = "scale(1.1)";
-                setTimeout(()=>cube.style.transform="scale(1)", 150);
+                azul.style.top = yPos - cubeSize * 0.2 + "px"; // hop slightly above cube
             });
 
             container.appendChild(cube);
             cubes.push(cube);
 
-            // Place Azul initially on top tile
+            // Place Azul initially on top-left cube
             if(r === 0 && c === 0) {
                 azul.style.left = xPos + "px";
-                azul.style.top = yPos + cubeSize * 0.1 + "px";
+                azul.style.top = yPos - cubeSize * 0.2 + "px";
             }
         }
     }
