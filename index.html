@@ -35,9 +35,10 @@
             position: relative;
             width: 300px;
             height: 350px;
-            margin-top: 40px;
+            margin-top: 60px;
             transform: rotateX(60deg) rotateZ(45deg);
             transform-style: preserve-3d;
+            z-index: 5; /* Lower than HUD */
         }
         .cube-wrapper { position: absolute; transform-style: preserve-3d; width: 50px; height: 50px; transition: all 0.3s ease; }
         .cube { position: absolute; width: 50px; height: 50px; transition: background 0.3s ease; }
@@ -46,17 +47,20 @@
         .cube.right { background: #660022; transform: rotateX(-90deg) translateZ(25px); transform-origin: bottom; }
         .compiled .top { background: var(--neon-cyan) !important; box-shadow: 0 0 15px var(--neon-cyan); }
 
+        /* HUD - FIXED TO ENSURE TAP RESPONSE */
         #hud-controls {
             position: fixed;
-            top: env(safe-area-inset-top);
+            top: calc(env(safe-area-inset-top) + 10px);
             right: 20px;
             display: flex;
-            gap: 15px;
-            padding: 10px;
-            z-index: 10000;
+            gap: 20px;
+            padding: 15px;
+            z-index: 999999 !important; /* Forces it above 3D layers */
+            pointer-events: auto;
         }
 
-        .hud-btn { font-size: 1.5rem; cursor: pointer; filter: drop-shadow(0 0 5px var(--neon-cyan)); transition: transform 0.1s; }
+        .hud-btn { font-size: 1.8rem; cursor: pointer; filter: drop-shadow(0 0 5px var(--neon-cyan)); transition: transform 0.1s; }
+        .hud-btn:active { transform: scale(0.9); }
 
         #azul-sprite {
             position: absolute;
@@ -93,14 +97,14 @@
             width: 80%;
             background: rgba(0,0,0,0.95);
             border: 3px solid var(--neon-cyan);
-            z-index: 9000;
+            z-index: 1000000;
             text-align: center;
             padding: 20px;
         }
         #mochkil-anim { width: 150px; height: auto; margin-bottom: 10px; }
 
-        #timer-display { font-size: 1.2rem; color: var(--neon-pink); font-weight: bold; z-index: 100; margin-top: 10px; }
-        #news-ticker { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 15px); width: 100%; background: rgba(0,0,0,0.8); border-top: 1px solid var(--neon-cyan); overflow: hidden; white-space: nowrap; padding: 5px 0; }
+        #timer-display { font-size: 1.2rem; color: var(--neon-pink); font-weight: bold; z-index: 100; margin-top: 20px; text-shadow: 0 0 10px #000;}
+        #news-ticker { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 15px); width: 100%; background: rgba(0,0,0,0.8); border-top: 1px solid var(--neon-cyan); overflow: hidden; white-space: nowrap; padding: 5px 0; z-index: 1000; }
         .ticker-content { display: inline-block; padding-left: 100%; animation: scroll-news 20s linear infinite; }
         @keyframes scroll-news { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
     </style>
@@ -149,14 +153,17 @@
 
     let gameActive = false, startTime, timerInterval, isMuted = false, isPaused = false;
 
+    // AUDIO UNLOCK FOR iPHONE
     function unlockAudio() {
         bgMusic.play().then(() => {
             if(isMuted) bgMusic.muted = true;
-        }).catch(e => console.log("Tap to unlock audio."));
+            console.log("Audio Unlocked");
+        }).catch(e => console.log("Waiting for interaction..."));
         window.removeEventListener('touchstart', unlockAudio);
     }
     window.addEventListener('touchstart', unlockAudio);
 
+    // RENDER PYRAMID
     pyramidData.forEach(d => {
         const wrap = document.createElement('div');
         wrap.className = 'cube-wrapper';
@@ -165,18 +172,17 @@
         const x = (d.c - (d.r / 2)) * 60; 
         const y = d.r * 50; 
         wrap.style.left = `calc(50% - 25px + ${x}px)`;
-        wrap.style.top = `calc(30% + ${y}px)`;
+        wrap.style.top = `calc(25% + ${y}px)`;
         wrap.innerHTML = `<div class="cube top" onclick="handleHop('${d.id}')"></div><div class="cube left"></div><div class="cube right"></div>`;
         container.appendChild(wrap);
     });
 
     function handleHop(id) {
+        if(isPaused) return; // Prevent hopping while paused
+        
         if(!gameActive) {
             gameActive = true;
-            startTime = Date.now();
-            timerInterval = setInterval(() => { 
-                timerSpan.innerText = ((Date.now()-startTime)/1000).toFixed(1); 
-            }, 100);
+            startTimer();
         }
         const target = document.getElementById(id);
         const e = window.event;
@@ -189,6 +195,7 @@
             triggerPopUp(tapX, tapY, mochkilSlang, 'slang-popup');
         }
 
+        // iPhone Haptics
         if (window.navigator.vibrate) window.navigator.vibrate(50);
 
         azul.style.left = target.style.left;
@@ -196,6 +203,13 @@
         target.classList.toggle('compiled');
         target.dataset.compiled = target.dataset.compiled === "true" ? "false" : "true";
         checkWin();
+    }
+
+    function startTimer() {
+        startTime = Date.now() - (parseFloat(timerSpan.innerText) * 1000);
+        timerInterval = setInterval(() => { 
+            timerSpan.innerText = ((Date.now()-startTime)/1000).toFixed(1); 
+        }, 100);
     }
 
     function triggerPopUp(x, y, list, className) {
@@ -221,16 +235,25 @@
         const img = document.getElementById('mochkil-anim');
         modal.style.display = 'block';
         let toggle = true;
-        setInterval(() => {
+        const victoryAnim = setInterval(() => {
             img.src = toggle ? 'mochkil-yes.png' : 'mochkil-idle.png';
             toggle = !toggle;
         }, 300);
-        document.getElementById('reward-text').innerText = "Tuna Tacos: SECURED. No cap, that was bussin.";
     }
 
     function toggleMusic() { 
-        if (bgMusic.paused) { bgMusic.play(); isPaused = false; } 
-        else { bgMusic.pause(); isPaused = true; } 
+        const pauseBtn = document.querySelector('[onclick="toggleMusic()"]');
+        if (bgMusic.paused) { 
+            bgMusic.play(); 
+            isPaused = false;
+            pauseBtn.innerText = "⏯️";
+            if(gameActive) startTimer();
+        } else { 
+            bgMusic.pause(); 
+            isPaused = true;
+            pauseBtn.innerText = "⏸️";
+            clearInterval(timerInterval);
+        } 
     }
 
     function toggleMute() { 
