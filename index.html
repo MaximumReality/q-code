@@ -88,6 +88,34 @@ body{
     50%{ box-shadow:0 0 35px var(--neon-cyan); }
     100%{ box-shadow:0 0 10px var(--neon-cyan); }
 }
+    /* GLITCH PHASE */
+.glitch .top{
+    animation: glitchFlicker 0.25s steps(2) 4;
+}
+
+@keyframes glitchFlicker{
+    0%{
+        background:#ff0055;
+        box-shadow:0 0 5px #ff0055;
+        transform:translateZ(50px) translateX(0);
+    }
+    25%{
+        background:#00ff88;
+        transform:translateZ(50px) translateX(-3px);
+    }
+    50%{
+        background:#ffffff;
+        transform:translateZ(50px) translateX(3px);
+    }
+    75%{
+        background:#ff00ff;
+        transform:translateZ(50px) translateX(-2px);
+    }
+    100%{
+        background:#ff0055;
+        transform:translateZ(50px) translateX(0);
+    }
+}
 
 /* AZUL FIXED */
 #azul{
@@ -155,13 +183,20 @@ function handleHop(target){
         bgMusic.play().catch(()=>{});
     }
 
-    target.classList.toggle("compiled");
+    // If already compiled, ignore
+    if(target.dataset.compiled === "true") return;
 
-    // Get cube transform
-    const cubeTransform = target.style.transform;
+    // Move Azul first
+    azul.style.transform = target.style.transform + " translateZ(65px)";
 
-    // Attach Azul slightly above cube top
-    azul.style.transform = cubeTransform + " translateZ(80px)";
+    // Start glitch
+    target.classList.add("glitch");
+    if (navigator.vibrate) navigator.vibrate([30, 30, 30]);
+    setTimeout(()=>{
+        target.classList.remove("glitch");
+        target.classList.add("compiled");
+        target.dataset.compiled = "true";
+    }, 400);
 }
 
 /* SIMPLE AUDIO UNLOCK */
