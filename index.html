@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Q-Code Board</title>
+<title>Q-Code Pyramid</title>
 <style>
 body{
     margin:0;
@@ -17,27 +17,33 @@ body{
 
 #board{
     position:relative;
+    width:100%;
+    max-width:400px;
+    height:100%;
 }
 
 .tile{
     position:absolute;
-    width:80px;
-    height:40px;
+    width:50px;
+    height:25px;
     background:#ff0055;
     transform:skewY(-26.565deg) scaleY(0.5);
     transform-origin:center;
     cursor:pointer;
     transition:all .2s ease;
+    border-top:2px solid #ff88aa;
+    box-sizing:border-box;
 }
 
 .tile.compiled{
     background:#00ffff;
-    box-shadow:0 0 20px #00ffff;
+    border-top:2px solid #88ffff;
+    box-shadow:0 0 15px #00ffff;
 }
 
 #azul{
     position:absolute;
-    width:40px;
+    width:30px;
     pointer-events:none;
     transition:all .2s ease;
 }
@@ -50,21 +56,18 @@ body{
 
 <script>
 const levels = 6;
-const tileW = 80;
-const tileH = 40;
+const tileW = 50;
+const tileH = 25;
 
 const board = document.getElementById("board");
 const azul = document.getElementById("azul");
 
-board.style.width = "600px";
-board.style.height = "500px";
-
-const centerX = 300;   // center inside board
-const startY = 40;
+const boardWidth = board.offsetWidth;
+const centerX = boardWidth/2;
+const startY = 80;
 
 for(let r=0;r<levels;r++){
     for(let c=0;c<=r;c++){
-
         const tile = document.createElement("div");
         tile.className="tile";
 
@@ -77,13 +80,14 @@ for(let r=0;r<levels;r++){
         tile.addEventListener("click",()=>{
             tile.classList.add("compiled");
 
-            azul.style.left = (x + 20) + "px";
-            azul.style.top = (y - 30) + "px";
+            azul.style.left = x + tileW/2 - 15 + "px";
+            azul.style.top = y - 15 + "px";
         });
 
         board.appendChild(tile);
     }
 }
 </script>
+
 </body>
 </html>
