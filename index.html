@@ -1,17 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>THE Q-CODE</title>
-
+<title>Q-Code Board</title>
 <style>
-:root{
-    --neon-cyan:#00ffff;
-    --neon-pink:#ff00ff;
-    --corrupted:#ff0055;
-}
-
 body{
     margin:0;
     background:#000;
@@ -20,194 +12,75 @@ body{
     justify-content:center;
     align-items:center;
     height:100vh;
-    perspective:1200px;
     font-family:monospace;
-    color:var(--neon-cyan);
 }
 
-/* STATIC CAMERA */
-.scene{
-    width:400px;
-    height:400px;
+#board{
     position:relative;
-    transform-style:preserve-3d;
-    transform: rotateX(60deg) rotateY(0deg);
 }
 
-.pyramid{
+.tile{
     position:absolute;
-    top:50%;
-    left:50%;
-    transform-style:preserve-3d;
-    transform:translate(-50%,-50%);
+    width:80px;
+    height:40px;
+    background:#ff0055;
+    transform:skewY(-26.565deg) scaleY(0.5);
+    transform-origin:center;
+    cursor:pointer;
+    transition:all .2s ease;
 }
 
-/* CUBES */
-.cube-wrapper{
-    position:absolute;
-    width:50px;
-    height:50px;
-    transform-style:preserve-3d;
-    transition:transform .3s ease;
+.tile.compiled{
+    background:#00ffff;
+    box-shadow:0 0 20px #00ffff;
 }
 
-.cube{
-    position:absolute;
-    width:50px;
-    height:50px;
-    backface-visibility:hidden;
-}
-
-.top{
-    background:var(--corrupted);
-    transform:translateZ(50px);
-    border:1px solid #fff;
-    transition:all .3s ease;
-}
-
-.left{
-    background:#990033;
-    transform:rotateY(-90deg) translateZ(25px);
-    transform-origin:left;
-}
-
-.right{
-    background:#660022;
-    transform:rotateX(-90deg) translateZ(25px);
-    transform-origin:bottom;
-}
-
-/* GLOW PULSE */
-.compiled .top{
-    background:var(--neon-cyan)!important;
-    animation: pulse 1.2s infinite ease-in-out;
-}
-
-@keyframes pulse{
-    0%{ box-shadow:0 0 10px var(--neon-cyan); }
-    50%{ box-shadow:0 0 35px var(--neon-cyan); }
-    100%{ box-shadow:0 0 10px var(--neon-cyan); }
-}
-    /* GLITCH PHASE */
-.glitch .top{
-    animation: glitchFlicker 0.25s steps(2) 4;
-}
-
-@keyframes glitchFlicker{
-    0%{
-        background:#ff0055;
-        box-shadow:0 0 5px #ff0055;
-        transform:translateZ(50px) translateX(0);
-    }
-    25%{
-        background:#00ff88;
-        transform:translateZ(50px) translateX(-3px);
-    }
-    50%{
-        background:#ffffff;
-        transform:translateZ(50px) translateX(3px);
-    }
-    75%{
-        background:#ff00ff;
-        transform:translateZ(50px) translateX(-2px);
-    }
-    100%{
-        background:#ff0055;
-        transform:translateZ(50px) translateX(0);
-    }
-}
-
-/* AZUL FIXED */
 #azul{
     position:absolute;
-    width:32px;   /* smaller */
-    transform-origin: bottom center;
+    width:40px;
     pointer-events:none;
-    transition:transform .25s ease;
+    transition:all .2s ease;
 }
 </style>
 </head>
 <body>
 
-<div class="scene">
-    <div class="pyramid" id="pyramid">
-        <img src="azul-tactical.png" id="azul">
-    </div>
-</div>
+<div id="board"></div>
+<img src="azul-tactical.png" id="azul">
 
 <script>
-const cubeSize = 50;
 const levels = 6;
+const tileW = 80;
+const tileH = 40;
 
-for (let r = 0; r < levels; r++) {
-    for (let c = 0; c <= r; c++) {
+const board = document.getElementById("board");
+const azul = document.getElementById("azul");
 
-        const wrap = document.createElement("div");
-        wrap.className = "cube-wrapper";
-        wrap.dataset.compiled = "false";
+const centerX = window.innerWidth/2;
+const startY = 120;
 
-        const x = (c - r / 2) * cubeSize;
-        const y = r * (cubeSize / 2);   // THIS is the fix
-        const z = -r * (cubeSize / 2);  // depth also half
+for(let r=0;r<levels;r++){
+    for(let c=0;c<=r;c++){
 
-        wrap.style.transform = `
-            translate3d(${x}px, ${y}px, ${z}px)
-        `;
+        const tile = document.createElement("div");
+        tile.className="tile";
 
-        wrap.innerHTML = `
-            <div class="cube top"></div>
-            <div class="cube left"></div>
-            <div class="cube right"></div>
-        `;
+        const x = centerX + (c - r/2) * tileW;
+        const y = startY + r * (tileH/2);
 
-        wrap.addEventListener("click", () => handleHop(wrap));
+        tile.style.left = x + "px";
+        tile.style.top = y + "px";
 
-        pyramid.appendChild(wrap);
+        tile.addEventListener("click",()=>{
+            tile.classList.add("compiled");
+
+            azul.style.left = x + 20 + "px";
+            azul.style.top = y - 20 + "px";
+        });
+
+        board.appendChild(tile);
     }
 }
-
-/* CENTER PYRAMID */
-pyramid.style.transform = "translate(-50%,-50%)";
-
-/* HANDLE HOP */
-function handleHop(target){
-
-    if(bgMusic.paused && !isMuted){
-        bgMusic.play().catch(()=>{});
-    }
-
-    if(target.dataset.compiled === "true") return;
-
-    // Move Azul FIRST
-    const base = target.style.transform;
-
-    azul.style.transform = base + " translateZ(55px)";
-
-    // Glitch phase
-    target.classList.add("glitch");
-
-    setTimeout(()=>{
-        target.classList.remove("glitch");
-        target.classList.add("compiled");
-        target.dataset.compiled = "true";
-    }, 350);
-}
-
-/* SIMPLE AUDIO UNLOCK */
-window.addEventListener("touchstart",()=>{
-    bgMusic.play().then(()=>{
-        bgMusic.pause();
-        bgMusic.currentTime=0;
-    }).catch(()=>{});
-},{once:true});
-
-/* OPTIONAL MUTE TOGGLE */
-document.addEventListener("keydown",(e)=>{
-    if(e.key==="m"){
-        isMuted=!isMuted;
-        bgMusic.muted=isMuted;
-    }
-});
 </script>
 
 </body>
