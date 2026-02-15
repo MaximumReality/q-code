@@ -17,19 +17,30 @@ Game Master Template
             --neon-cyan: #00ffff;
         }
         body {
-            margin: 0;
-            background: #000;
-            color: var(--neon-cyan);
-            font-family: 'Courier New', monospace;
-            /* Respects the safe area for iPhone 14 Pro Max */
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+    margin: 0;
+    /* Replace 'clean-poster.png' with your actual file name */
+    background: url('clean-poster.png') no-repeat center center fixed;
+    background-size: cover;
+    color: var(--neon-cyan);
+    font-family: 'Courier New', monospace;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Add a slight dark overlay so the game cubes pop */
+#game-layer::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4); /* 40% darkness */
+    z-index: -1;
+}
+
         /* Keep your game container relative for z-index layering */
         #game-layer {
             position: relative;
