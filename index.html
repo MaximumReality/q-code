@@ -1,271 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>THE Q-CODE</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>THE Q-CODE</title>
 
-    <style>
-        :root {
-            --neon-pink: #ff00ff;
-            --neon-cyan: #00ffff;
-            --corrupted: #ff0055;
-        }
-        body {
-            margin: 0;
-            background: url('clean-poster.PNG') no-repeat center center fixed;
-            background-size: cover;
-            color: var(--neon-cyan);
-            font-family: 'Courier New', monospace;
-            padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+<style>
+:root{
+    --neon-cyan:#00ffff;
+    --neon-pink:#ff00ff;
+    --corrupted:#ff0055;
+}
 
-        #game-layer { position: relative; z-index: 10; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; }
+body{
+    margin:0;
+    background:#000;
+    overflow:hidden;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    perspective:1200px;
+    font-family:monospace;
+    color:var(--neon-cyan);
+}
 
-        /* 3D ENGINE */
-        .pyramid-container {
-            position: relative;
-            width: 300px;
-            height: 350px;
-            margin-top: 60px;
-            transform: rotateX(60deg) rotateZ(45deg);
-            transform-style: preserve-3d;
-            z-index: 5; /* Lower than HUD */
-        }
-        .cube-wrapper { position: absolute; transform-style: preserve-3d; width: 50px; height: 50px; transition: all 0.3s ease; }
-        .cube { position: absolute; width: 50px; height: 50px; transition: background 0.3s ease; }
-        .cube.top { background: var(--corrupted); transform: translateZ(50px); border: 1px solid #fff; }
-        .cube.left { background: #990033; transform: rotateY(-90deg) translateZ(25px); transform-origin: left; }
-        .cube.right { background: #660022; transform: rotateX(-90deg) translateZ(25px); transform-origin: bottom; }
-        .compiled .top { background: var(--neon-cyan) !important; box-shadow: 0 0 15px var(--neon-cyan); }
+/* ROTATING WORLD */
+.scene{
+    width:400px;
+    height:400px;
+    position:relative;
+    transform-style:preserve-3d;
+    animation: spin 20s linear infinite;
+}
 
-        /* HUD - FIXED TO ENSURE TAP RESPONSE */
-        #hud-controls {
-            position: fixed;
-            top: calc(env(safe-area-inset-top) + 10px);
-            right: 20px;
-            display: flex;
-            gap: 20px;
-            padding: 15px;
-            z-index: 999999 !important; /* Forces it above 3D layers */
-            pointer-events: auto;
-        }
+@keyframes spin{
+    from{ transform: rotateX(60deg) rotateY(0deg); }
+    to{ transform: rotateX(60deg) rotateY(360deg); }
+}
 
-        .hud-btn { font-size: 1.8rem; cursor: pointer; filter: drop-shadow(0 0 5px var(--neon-cyan)); transition: transform 0.1s; }
-        .hud-btn:active { transform: scale(0.9); }
+.pyramid{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform-style:preserve-3d;
+}
 
-        #azul-sprite {
-            position: absolute;
-            width: 60px;
-            height: auto;
-            z-index: 500;
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            pointer-events: none;
-            transform: rotateZ(-45deg) rotateX(-60deg) translateY(-35px); 
-        }
+/* CUBES */
+.cube-wrapper{
+    position:absolute;
+    width:50px;
+    height:50px;
+    transform-style:preserve-3d;
+    transition:transform .3s ease;
+}
 
-        .hacker-curse, .slang-popup {
-            position: fixed;
-            pointer-events: none;
-            padding: 2px 8px;
-            font-weight: bold;
-            z-index: 3000;
-            animation: glitch-pop 0.6s ease-out forwards;
-        }
-        .hacker-curse { background: #000; border: 1px solid var(--neon-cyan); color: #fff; }
-        .slang-popup { color: var(--neon-pink); text-shadow: 0 0 5px #000; font-size: 1.2rem; }
+.cube{
+    position:absolute;
+    width:50px;
+    height:50px;
+    backface-visibility:hidden;
+}
 
-        @keyframes glitch-pop {
-            0% { transform: translateY(0) scale(1); opacity: 1; }
-            100% { transform: translateY(-50px) scale(1.1); opacity: 0; }
-        }
+.top{
+    background:var(--corrupted);
+    transform:translateZ(50px);
+    border:1px solid #fff;
+}
 
-        #reward-screen {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 80%;
-            background: rgba(0,0,0,0.95);
-            border: 3px solid var(--neon-cyan);
-            z-index: 1000000;
-            text-align: center;
-            padding: 20px;
-        }
-        #mochkil-anim { width: 150px; height: auto; margin-bottom: 10px; }
+.left{
+    background:#990033;
+    transform:rotateY(-90deg) translateZ(25px);
+    transform-origin:left;
+}
 
-        #timer-display { font-size: 1.2rem; color: var(--neon-pink); font-weight: bold; z-index: 100; margin-top: 20px; text-shadow: 0 0 10px #000;}
-        #news-ticker { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 15px); width: 100%; background: rgba(0,0,0,0.8); border-top: 1px solid var(--neon-cyan); overflow: hidden; white-space: nowrap; padding: 5px 0; z-index: 1000; }
-        .ticker-content { display: inline-block; padding-left: 100%; animation: scroll-news 20s linear infinite; }
-        @keyframes scroll-news { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
-    </style>
+.right{
+    background:#660022;
+    transform:rotateX(-90deg) translateZ(25px);
+    transform-origin:bottom;
+}
+
+.compiled .top{
+    background:var(--neon-cyan)!important;
+    box-shadow:0 0 20px var(--neon-cyan);
+}
+
+/* AZUL */
+#azul{
+    position:absolute;
+    width:60px;
+    pointer-events:none;
+    transition:transform .3s cubic-bezier(.2,1,.3,1);
+}
+</style>
 </head>
 <body>
 
-<div id="hud-controls">
-    <span class="hud-btn" onclick="goHome()">🏡</span>
-    <span class="hud-btn" onclick="toggleMusic()">⏯️</span>
-    <span class="hud-btn" onclick="toggleMute()">🔇</span>
-</div>
-
-<div id="game-layer">
-    <div id="timer-display">SNACK TIMER: <span id="seconds">0.0</span>s</div>
-    <div class="pyramid-container" id="pyramid">
-        <img src="azul-tactical.png" id="azul-sprite">
+<div class="scene">
+    <div class="pyramid" id="pyramid">
+        <img src="azul-tactical.png" id="azul">
     </div>
 </div>
 
-<div id="reward-screen">
-    <h2 style="color:var(--neon-pink);">RECIPE UNLOCKED!</h2>
-    <img src="mochkil-idle.png" id="mochkil-anim">
-    <p id="reward-text" style="color:#fff;"></p>
-    <button onclick="location.reload()" style="background:var(--neon-cyan); border:none; padding:10px 20px; font-weight:bold;">NEXT LEVEL</button>
-</div>
-
-<div id="news-ticker">
-    <div class="ticker-content" id="ticker-text">LOADING MAXIMUM REALITY...</div>
-</div>
-
 <script>
-    const pyramidData = [
-        {r: 0, c: 0, id: "m0"},
-        {r: 1, c: 0, id: "n1"}, {r: 1, c: 1, id: "n2"},
-        {r: 2, c: 0, id: "n3"}, {r: 2, c: 1, id: "n4"}, {r: 2, c: 2, id: "n5"}
-    ];
-    const qbertCurses = ["@!#?@!", "??!!#", "#$%@!", "G-L-I-T-C-H"];
-    const mochkilSlang = ["Bussin!", "No Cap.", "Bet.", "W Hacker.", "Real."];
-    const newsData = ["AZUL BREACHES SECTOR 7", "MOCHKIL'S SNACK ATTACK LIVE", "LORI UPDATES Q-CODE"];
+const cubeSize = 50;
+const levels = 5;
 
-    const container = document.getElementById('pyramid');
-    const azul = document.getElementById('azul-sprite');
-    const timerSpan = document.getElementById('seconds');
-    const bgMusic = new Audio('a-sunny-day.mp3');
-    bgMusic.loop = true;
+const pyramid = document.getElementById("pyramid");
+const azul = document.getElementById("azul");
+const bgMusic = new Audio("a-sunny-day.mp3");
+bgMusic.loop = true;
 
-    let gameActive = false, startTime, timerInterval, isMuted = false, isPaused = false;
+let isMuted = false;
 
-    // AUDIO UNLOCK FOR iPHONE
-    function unlockAudio() {
-        bgMusic.play().then(() => {
-            if(isMuted) bgMusic.muted = true;
-            console.log("Audio Unlocked");
-        }).catch(e => console.log("Waiting for interaction..."));
-        window.removeEventListener('touchstart', unlockAudio);
+/* BUILD TRUE 3D PYRAMID */
+for(let r=0;r<levels;r++){
+    for(let c=0;c<=r;c++){
+
+        const wrap = document.createElement("div");
+        wrap.className="cube-wrapper";
+        wrap.dataset.compiled="false";
+
+        const x = (c - r/2) * cubeSize;
+        const y = r * cubeSize;
+        const z = -r * cubeSize;
+
+        wrap.style.transform = `
+            translate3d(${x}px,${y}px,${z}px)
+        `;
+
+        wrap.innerHTML=`
+            <div class="cube top"></div>
+            <div class="cube left"></div>
+            <div class="cube right"></div>
+        `;
+
+        wrap.addEventListener("click",()=>handleHop(wrap));
+
+        pyramid.appendChild(wrap);
     }
-    window.addEventListener('touchstart', unlockAudio);
+}
 
-    // RENDER PYRAMID
-    pyramidData.forEach(d => {
-        const wrap = document.createElement('div');
-        wrap.className = 'cube-wrapper';
-        wrap.id = d.id;
-        wrap.dataset.compiled = "false";
-        const x = (d.c - (d.r / 2)) * 60; 
-        const y = d.r * 50; 
-        wrap.style.left = `calc(50% - 25px + ${x}px)`;
-        wrap.style.top = `calc(25% + ${y}px)`;
-        wrap.innerHTML = `<div class="cube top" onclick="handleHop('${d.id}')"></div><div class="cube left"></div><div class="cube right"></div>`;
-        container.appendChild(wrap);
-    });
+/* CENTER PYRAMID */
+pyramid.style.transform = "translate(-50%,-50%)";
 
-    function handleHop(id) {
-        if(isPaused) return; // Prevent hopping while paused
-        
-        if(!gameActive) {
-            gameActive = true;
-            startTimer();
-        }
-        const target = document.getElementById(id);
-        const e = window.event;
-        const tapX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
-        const tapY = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+/* HANDLE HOP */
+function handleHop(target){
 
-        if (Math.random() > 0.8) {
-            triggerPopUp(tapX, tapY, qbertCurses, 'hacker-curse');
-        } else {
-            triggerPopUp(tapX, tapY, mochkilSlang, 'slang-popup');
-        }
-
-        // iPhone Haptics
-        if (window.navigator.vibrate) window.navigator.vibrate(50);
-
-        azul.style.left = target.style.left;
-        azul.style.top = target.style.top;
-        target.classList.toggle('compiled');
-        target.dataset.compiled = target.dataset.compiled === "true" ? "false" : "true";
-        checkWin();
+    if(bgMusic.paused && !isMuted){
+        bgMusic.play().catch(()=>{});
     }
 
-    function startTimer() {
-        startTime = Date.now() - (parseFloat(timerSpan.innerText) * 1000);
-        timerInterval = setInterval(() => { 
-            timerSpan.innerText = ((Date.now()-startTime)/1000).toFixed(1); 
-        }, 100);
-    }
+    target.classList.toggle("compiled");
 
-    function triggerPopUp(x, y, list, className) {
-        const bubble = document.createElement('div');
-        bubble.className = className;
-        bubble.innerText = list[Math.floor(Math.random() * list.length)];
-        bubble.style.left = `${x}px`;
-        bubble.style.top = `${y}px`;
-        document.body.appendChild(bubble);
-        setTimeout(() => bubble.remove(), 600);
-    }
+    azul.style.transform = target.style.transform +
+        " translateZ(70px)";
+}
 
-    function checkWin() {
-        const all = Array.from(document.querySelectorAll('.cube-wrapper')).every(c => c.dataset.compiled === "true");
-        if (all) {
-            clearInterval(timerInterval);
-            showMochkilVictory();
-        }
-    }
+/* SIMPLE AUDIO UNLOCK */
+window.addEventListener("touchstart",()=>{
+    bgMusic.play().then(()=>{
+        bgMusic.pause();
+        bgMusic.currentTime=0;
+    }).catch(()=>{});
+},{once:true});
 
-    function showMochkilVictory() {
-        const modal = document.getElementById('reward-screen');
-        const img = document.getElementById('mochkil-anim');
-        modal.style.display = 'block';
-        let toggle = true;
-        const victoryAnim = setInterval(() => {
-            img.src = toggle ? 'mochkil-yes.png' : 'mochkil-idle.png';
-            toggle = !toggle;
-        }, 300);
+/* OPTIONAL MUTE TOGGLE */
+document.addEventListener("keydown",(e)=>{
+    if(e.key==="m"){
+        isMuted=!isMuted;
+        bgMusic.muted=isMuted;
     }
-
-    function toggleMusic() { 
-        const pauseBtn = document.querySelector('[onclick="toggleMusic()"]');
-        if (bgMusic.paused) { 
-            bgMusic.play(); 
-            isPaused = false;
-            pauseBtn.innerText = "⏯️";
-            if(gameActive) startTimer();
-        } else { 
-            bgMusic.pause(); 
-            isPaused = true;
-            pauseBtn.innerText = "⏸️";
-            clearInterval(timerInterval);
-        } 
-    }
-
-    function toggleMute() { 
-        isMuted = !isMuted; 
-        bgMusic.muted = isMuted; 
-        const muteBtn = document.querySelector('[onclick="toggleMute()"]');
-        muteBtn.innerText = isMuted ? "🔇" : "🔊";
-        muteBtn.style.opacity = isMuted ? "0.5" : "1";
-    }
-
-    function goHome() { window.location.href = "https://MaximumReality.xyz"; }
-    document.getElementById('ticker-text').innerText = newsData.join(" | ");
+});
 </script>
+
 </body>
 </html>
