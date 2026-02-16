@@ -91,7 +91,7 @@ let azul, azulTarget, popFrames = 0;
 let azulCurses = ["@!#?@", "??!!#", "#$%@!", "G-L-I-T-C-H"];
 let mochkilSlang = ["Bussin!", "No Cap.", "Bet.", "W Hacker.", "Real!"];
 let score = 0;
-let azulImg;
+let azulImg, badImg;
 let gameWon = false;
 const bgMusic = document.getElementById('bgMusic');
 let isMuted = false;
@@ -117,7 +117,17 @@ document.getElementById('next-btn').onclick = ()=>{
   }));
 
   document.getElementById('mochkil-img').src='mochkil-idle.png';
+
+  // Reset Azul and Bad Guy positions
+  azul.x = cubes[0][0].x; azul.y = cubes[0][0].y;
+  azulTarget.x = azul.x; azulTarget.y = azul.y;
+  azul.row = 0; azul.col = 0;
+
+  badGuy.row = 0; badGuy.col = 0;
+  badGuy.x = cubes[0][0].x; badGuy.y = cubes[0][0].y;
+  badMoveTimer = 0;
 };
+
 document.getElementById('start-overlay').addEventListener('click', ()=>{
   bgMusic.load();
 
@@ -130,22 +140,39 @@ document.getElementById('start-overlay').addEventListener('click', ()=>{
   document.getElementById('start-overlay').style.display='none';
 });
 
+// p5 sketch
 new p5((sketch)=>{
   let cubeSize = 50;
+  let badGuy = { row:0, col:0, x:0, y:0 };
+  let badMoveTimer = 0;
 
-  sketch.preload = function(){ azulImg = sketch.loadImage('azul-tactical.png'); }
+  // Preload images
+  sketch.preload = function(){
+    azulImg = sketch.loadImage('azul-tactical.png');
+    badImg = sketch.loadImage('bad-guy.png');
+  }
 
   sketch.setup = function(){
     const canvas = sketch.createCanvas(sketch.windowWidth, sketch.windowHeight);
     canvas.parent('p5-container');
     sketch.noStroke();
     setupPyramid(currentLevel);
-    azul = { x:cubes[0][0].x, y:cubes[0][0].y, yOffset:0 };
-    azulTarget = {...azul};
+
+    // Initialize Azul
+    azul = { x:cubes[0][0].x, y:cubes[0][0].y, yOffset:0, row:0, col:0 };
+    azulTarget = { ...azul };
+
+    // Initialize Bad Guy
+    badGuy.row = 0; badGuy.col = 0;
+    badGuy.x = cubes[0][0].x;
+    badGuy.y = cubes[0][0].y;
+    badMoveTimer = 0;
   }
 
   sketch.draw = function(){
     sketch.clear();
+
+    // Draw cubes
     for(let i=cubes.length-1;i>=0;i--){
       for(let j=0;j<cubes[i].length;j++){
         drawIsoCube(cubes[i][j], sketch);
@@ -153,28 +180,43 @@ new p5((sketch)=>{
     }
 
     // === Azul sprite ===
-azul.x += (azulTarget.x - azul.x) * 0.2;
-azul.y += (azulTarget.y - azul.y) * 0.2;
+    azul.x += (azulTarget.x - azul.x) * 0.2;
+    azul.y += (azulTarget.y - azul.y) * 0.2;
+    azul.yOffset = popFrames > 0 ? 10 * Math.sin(Math.PI * popFrames/10) : 0;
+    let standOffset = cubeSize * 0.58;
+    sketch.imageMode(sketch.CENTER);
+    sketch.image(azulImg, azul.x, azul.y - standOffset - azul.yOffset, cubeSize, cubeSize);
 
-// bounce animation when landing
-azul.yOffset = popFrames > 0 
-  ? 10 * Math.sin(Math.PI * popFrames / 10) 
-  : 0;
+    // === Bad Guy movement ===
+    badMoveTimer++;
+    if(badMoveTimer > 30){
+      badMoveTimer = 0;
+      // Move toward Azul: row first, then column
+      if(badGuy.row < azulTarget.row) badGuy.row++;
+      else if(badGuy.col < azulTarget.col) badGuy.col++;
+      let pos = cubes[badGuy.row][badGuy.col];
+      badGuy.x = pos.x;
+      badGuy.y = pos.y;
+    }
 
-sketch.imageMode(sketch.CENTER);
+    // Draw Bad Guy
+    sketch.image(badImg, badGuy.x, badGuy.y - cubeSize*0.55, cubeSize, cubeSize);
 
-// Lift Azul so his FEET land on cube top
-let standOffset = cubeSize * 0.58;
+    // Check collision
+    if(badGuy.row === azulTarget.row && badGuy.col === azulTarget.col){
+      alert("Azul was caught! 🌶️💥");
+      setupPyramid(currentLevel);  // reset board
 
-sketch.image(
-  azulImg,
-  azul.x,
-  azul.y - standOffset - azul.yOffset,
-  cubeSize,
-  cubeSize
-);
+      azul.x = cubes[0][0].x; azul.y = cubes[0][0].y;
+      azulTarget.x = azul.x; azulTarget.y = azul.y;
+      azul.row = 0; azul.col = 0;
 
-if (popFrames > 0) popFrames--;
+      badGuy.row = 0; badGuy.col = 0;
+      badGuy.x = cubes[0][0].x; badGuy.y = cubes[0][0].y;
+      badMoveTimer = 0;
+    }
+
+    if(popFrames > 0) popFrames--;
 
     // Pop-ups
     cubes.forEach(row=>row.forEach(cube=>{
@@ -235,12 +277,12 @@ if (popFrames > 0) popFrames--;
   }
 
   function checkVictory(){
-  if(!gameWon && cubes.flat().every(c=>c.compiled)){
-    gameWon = true;
-    document.getElementById('mochkil-img').src='mochkil-yes.png';
-    document.getElementById('reward-screen').style.display='flex';
+    if(!gameWon && cubes.flat().every(c=>c.compiled)){
+      gameWon = true;
+      document.getElementById('mochkil-img').src='mochkil-yes.png';
+      document.getElementById('reward-screen').style.display='flex';
+    }
   }
-}
 
   function setupPyramid(levelIndex){
     cubes=[];
