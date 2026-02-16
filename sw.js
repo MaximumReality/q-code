@@ -2,6 +2,7 @@ const CACHE_NAME = 'qcode-pyramid-v1.1';
 const ASSETS = [
   '/',
   '/index.html',
+  '/sw.js',
   '/clean-poster.PNG',
   '/a-sunny-day.mp3',
   '/azul-tactical.png',
