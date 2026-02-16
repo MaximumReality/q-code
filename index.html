@@ -203,44 +203,38 @@ new p5((sketch) => {
 
   sketch.draw = function() {
   if (isPaused) {
-    // pause overlay
-    sketch.fill(0,0,0,100);
-    sketch.rect(0,0,sketch.width,sketch.height);
-    sketch.fill(255);
-    sketch.textAlign(sketch.CENTER);
-    sketch.textSize(32);
-    sketch.text("SYSTEM PAUSED", sketch.width/2, sketch.height/2);
+    // ... (Keep your pause code)
     return;
   }
 
   sketch.clear();
 
-  // === BAD GUY SLIDE-IN ===
-  if(badStartDelay > 0){
-    badStartDelay--; // countdown
-    let targetPos = cubes[badGuy.row][badGuy.col];
-    badGuy.x += (targetPos.x - badGuy.x) * 0.1; // smooth approach
-    badGuy.y = targetPos.y;
-
-    sketch.imageMode(sketch.CENTER);
-    sketch.image(badImg, badGuy.x, badGuy.y - cubeSize*0.55, cubeSize, cubeSize);
-    return; // skip the rest until slide-in finishes
-  }
-
+  
   // --- Draw cubes ---
-  for(let i=cubes.length-1;i>=0;i--){
-    for(let j=0;j<cubes[i].length;j++){
+    // 1. ALWAYS DRAW CUBES FIRST (So they don't disappear!)
+  for(let i=cubes.length-1; i>=0; i--){
+    for(let j=0; j<cubes[i].length; j++){
       drawIsoCube(cubes[i][j], sketch);
     }
   }
 
-    // === Azul sprite ===
-    azul.x += (azulTarget.x - azul.x) * 0.2;
-    azul.y += (azulTarget.y - azul.y) * 0.2;
-    azul.yOffset = popFrames > 0 ? 10 * Math.sin(Math.PI*popFrames/10) : 0;
-    let standOffset = cubeSize * 0.58;
-    sketch.imageMode(sketch.CENTER);
-    sketch.image(azulImg, azul.x, azul.y - standOffset - azul.yOffset, cubeSize, cubeSize);
+    // 2. DRAW AZUL (So he's visible during the reset)
+  azul.x += (azulTarget.x - azul.x) * 0.2;
+  azul.y += (azulTarget.y - azul.y) * 0.2;
+  azul.yOffset = popFrames > 0 ? 10 * Math.sin(Math.PI*popFrames/10) : 0;
+  sketch.imageMode(sketch.CENTER);
+  sketch.image(azulImg, azul.x, azul.y - (cubeSize * 0.58) - azul.yOffset, cubeSize, cubeSize);
+
+      // 3. NOW HANDLE THE BAD GUY SLIDE-IN
+  if(badStartDelay > 0){
+    badStartDelay--; 
+    let targetPos = cubes[badGuy.row][badGuy.col];
+    badGuy.x += (targetPos.x - badGuy.x) * 0.1; 
+    badGuy.y = targetPos.y;
+
+    sketch.image(badImg, badGuy.x, badGuy.y - cubeSize*0.55, cubeSize, cubeSize);
+    return; // We only stop the REST of the AI logic, not the drawing!
+  }
 
     // --- DETECTION ALERT LOGIC ---
     if(azulTarget.x >= badGuy.x){
@@ -281,7 +275,7 @@ new p5((sketch) => {
         azulTarget.x = azul.x; azulTarget.y = azul.y;
         azul.row = 0; azul.col = 0;
 
-        badGuy.row = 0; badGuy.col = 0;
+        badGuy.row = cubes.length - 1; badGuy.col = 0;
         badGuy.x = cubes[0][0].x - cubeSize; // start left
         badGuy.y = cubes[0][0].y;
         badMoveTimer = 0;
