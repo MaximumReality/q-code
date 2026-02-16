@@ -101,23 +101,31 @@ new p5((sketch)=>{
     checkVictory();
   }
 
-  sketch.mousePressed=function(){
-    if(bgMusic.paused) bgMusic.play();
-    for(let i=0;i<cubes.length;i++){
-      for(let j=0;j<cubes[i].length;j++){
-        let cube=cubes[i][j];
-        if(sketch.mouseX>cube.x-cubeSize/2 && sketch.mouseX<cube.x+cubeSize/2 &&
-           sketch.mouseY>cube.y-cubeSize/4 && sketch.mouseY<cube.y+cubeSize/4){
-          if(!cube.compiled) score++;
-          cube.compiled=!cube.compiled; cube.pop=true;
-          cube.fromMochkil = Math.random()<0.3;
-          azulTarget.x=cube.x; azulTarget.y=cube.y; popFrames=10;
-          if(!isMuted) hopSound.play();
-          document.getElementById('score-display').textContent='Score: '+score;
-        }
-      }
+  sketch.mousePressed = function() {
+    // 1️⃣ Start background music if not already playing
+    if(bgMusic.paused){
+        bgMusic.play().catch(err => console.log("Music blocked:", err));
     }
-  }
+
+    // 2️⃣ Cube click logic
+    for(let i=0;i<cubes.length;i++){
+        for(let j=0;j<cubes[i].length;j++){
+            let cube=cubes[i][j];
+            if(sketch.mouseX>cube.x-cubeSize/2 && sketch.mouseX<cube.x+cubeSize/2 &&
+               sketch.mouseY>cube.y-cubeSize/4 && sketch.mouseY<cube.y+cubeSize/4){
+                if(!cube.compiled) score++;
+                cube.compiled=!cube.compiled;
+                cube.pop=true;
+                cube.fromMochkil = Math.random() < 0.3;
+                azulTarget.x=cube.x;
+                azulTarget.y=cube.y;
+                popFrames=10;
+                if(!isMuted) hopSound.play();
+                document.getElementById('score-display').textContent = 'Score: '+score;
+            }
+        }
+    }
+};
 
   function drawIsoCube(cube,s){
     let x=cube.x,y=cube.y;
