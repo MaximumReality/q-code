@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Q-Code Restoration</title>
+<title>Q-Code Final Fix</title>
 <style>
   :root { --neon-pink:#ff00ff; --neon-cyan:#00ffff; }
   body {
@@ -11,21 +11,22 @@
     background-size:cover; overflow:hidden; font-family:'Courier New', monospace;
   }
   #score-display {
-    position:fixed; top:env(safe-area-inset-top, 20px); left:20px; font-size:1.8rem; 
+    position:fixed; top:20px; left:20px; font-size:1.8rem; 
     color:var(--neon-cyan); text-shadow:0 0 10px var(--neon-cyan); z-index: 100;
   }
-  #hud-controls { position:fixed; top:env(safe-area-inset-top, 20px); right:20px; display:flex; gap:15px; z-index:10000; }
-  .hud-btn { font-size:2rem; cursor:pointer; filter: drop-shadow(0 0 5px var(--neon-cyan)); }
+  #control-deck { position:fixed; top:20px; right:20px; display:flex; gap:15px; z-index:10000; }
+  .deck-icon { font-size:2rem; cursor:pointer; text-decoration: none; filter: drop-shadow(0 0 5px var(--neon-cyan)); }
   #p5-container { position: absolute; top: 0; left: 0; }
 </style>
 </head>
 <body>
 
 <div id="score-display">Score: 0</div>
-<div id="hud-controls">
-  <span class="hud-btn" onclick="goHome()">🏡</span>
-  <span class="hud-btn" onclick="toggleMusic()">⏯️</span>
-  <span class="hud-btn" id="mute-btn" onclick="toggleMute()">🔇</span>
+
+<div id="control-deck">
+    <span id="mute-btn" class="deck-icon" onclick="toggleMute()">🔊</span>
+    <span id="play-pause-btn" class="deck-icon" onclick="togglePlay()">⏯️</span>
+    <a href="https://maximumreality.xyz" id="home-link" class="deck-icon">🏡</a>
 </div>
 
 <div id="p5-container"></div>
@@ -37,18 +38,32 @@
 <script>
 let levelsData = [6, 5, 4], currentLevel = 0, cubes = [], azul, azulTarget, popFrames = 0;
 let azulCurses = ["@!#?@!", "??!!#", "#$%@!", "G-L-I-T-C-H"];
-let score = 0;
-let audioStarted = false;
+let score = 0, isMuted = false, isPaused = true;
 
 const bgMusic = document.getElementById('bgMusic');
 const hopSound = document.getElementById('hopSound');
 
-function toggleMusic() { bgMusic.paused ? bgMusic.play() : bgMusic.pause(); }
-function toggleMute() { bgMusic.muted = hopSound.muted = !bgMusic.muted; document.getElementById('mute-btn').innerText = bgMusic.muted ? "🔊" : "🔇"; }
+// --- INTEGRATED YOUR CONTROL DECK LOGIC ---
+function toggleMute() {
+    isMuted = !isMuted; 
+    bgMusic.muted = isMuted;
+    hopSound.muted = isMuted;
+    document.getElementById('mute-btn').innerText = isMuted ? "🔇" : "🔊";
+}
+
+function togglePlay() {
+    isPaused = !isPaused;
+    if (isPaused) { 
+        bgMusic.pause(); 
+    } else { 
+        bgMusic.play().catch(e => console.log("User interaction needed"));
+    }
+}
+
 function goHome() { window.location.href = "https://MaximumReality.xyz"; }
 
 new p5((sketch) => {
-  let cubeSize = 42; // Perfect scale for iPhone width
+  let cubeSize = 42; 
   let azulImg;
 
   sketch.preload = function() {
@@ -63,90 +78,89 @@ new p5((sketch) => {
   sketch.draw = function() {
     sketch.clear();
     
-    // Draw from back to front for correct 3D stacking
-    for (let r = cubes.length - 1; r >= 0; r--) {
+    // 1. Draw solid 3D cubes (Back to Front)
+    for (let r = 0; r < cubes.length; r++) {
       for (let c = 0; c < cubes[r].length; c++) {
-        drawIsoCube(cubes[r][c], sketch);
+        drawSolidCube(cubes[r][c], sketch);
       }
     }
 
-    // Azul Movement
+    // 2. Azul Physics
     azul.x += (azulTarget.x - azul.x) * 0.2;
     azul.y += (azulTarget.y - azul.y) * 0.2;
-    let hop = popFrames > 0 ? Math.sin(sketch.map(popFrames, 0, 10, 0, Math.PI)) * 15 : 0;
+    let jumpY = popFrames > 0 ? Math.sin(sketch.map(popFrames, 0, 12, 0, Math.PI)) * 20 : 0;
 
     sketch.imageMode(sketch.CENTER);
-    sketch.image(azulImg, azul.x, azul.y - 25 - hop, 70, 70);
+    sketch.image(azulImg, azul.x, azul.y - 30 - jumpY, 75, 75);
 
     if (popFrames > 0) popFrames--;
 
-    // Floating Curses
+    // 3. Azul Cussing
     cubes.flat().forEach(cube => {
-      if (cube.pop) {
+      if (cube.pop > 0) {
         sketch.fill('#00ffff');
-        sketch.textSize(20);
-        sketch.text(sketch.random(azulCurses), cube.x, cube.y - 60 - (10 - popFrames));
-        if (popFrames === 0) cube.pop = false;
+        sketch.textAlign(sketch.CENTER);
+        sketch.textSize(22);
+        sketch.text(cube.msg, cube.x, cube.y - 80 - (10 - cube.pop));
+        cube.pop--;
       }
     });
   }
 
   sketch.mousePressed = function() {
-    // FORCE AUDIO UNLOCK
-    if (!audioStarted) {
-      bgMusic.play();
-      audioStarted = true;
+    // START AUDIO ON FIRST TOUCH (Safari requirement)
+    if (isPaused) {
+        isPaused = false;
+        bgMusic.play();
     }
 
     for (let r = 0; r < cubes.length; r++) {
       for (let c = 0; c < cubes[r].length; c++) {
         let cube = cubes[r][c];
-        // Optimized tap detection for mobile
         if (sketch.dist(sketch.mouseX, sketch.mouseY, cube.x, cube.y) < 35) {
           if (!cube.compiled) { score++; cube.compiled = true; }
           azulTarget.x = cube.x;
           azulTarget.y = cube.y;
-          cube.pop = true;
-          popFrames = 10;
-          hopSound.currentTime = 0;
-          hopSound.play();
+          popFrames = 12;
+          cube.pop = 20;
+          cube.msg = sketch.random(azulCurses);
+          
+          if(!isMuted) {
+              hopSound.currentTime = 0;
+              hopSound.play();
+          }
           document.getElementById('score-display').textContent = 'Score: ' + score;
         }
       }
     }
   }
 
-  function drawIsoCube(cube, s) {
-    let x = cube.x, y = cube.y;
+  function drawSolidCube(cube, s) {
+    let x = cube.x, y = cube.y, h = cubeSize;
     let topC = cube.compiled ? s.color(0, 255, 255) : s.color(255, 0, 85);
-    let leftC = cube.compiled ? s.color(0, 180, 180) : s.color(153, 0, 51);
-    let rightC = cube.compiled ? s.color(0, 200, 200) : s.color(204, 0, 68);
+    let leftC = cube.compiled ? s.color(0, 150, 150) : s.color(150, 0, 50);
+    let rightC = cube.compiled ? s.color(0, 200, 200) : s.color(200, 0, 70);
 
-    s.push();
-    s.translate(x, y);
-    s.noStroke();
-    // Top
-    s.fill(topC);
-    s.quad(0, -cubeSize/2, cubeSize, -cubeSize/4, 0, 0, -cubeSize, -cubeSize/4);
-    // Left
-    s.fill(leftC);
-    s.quad(-cubeSize, -cubeSize/4, 0, 0, 0, cubeSize/2, -cubeSize, cubeSize/4);
-    // Right
-    s.fill(rightC);
-    s.quad(0, 0, cubeSize, -cubeSize/4, cubeSize, cubeSize/4, 0, cubeSize/2);
+    s.push(); s.translate(x, y); s.noStroke();
+    s.quad(0, -h, h*1.2, -h/2, 0, 0, -h*1.2, -h/2); // TOP
+    s.fill(leftC); s.quad(-h*1.2, -h/2, 0, 0, 0, h, -h*1.2, h/2); // LEFT
+    s.fill(rightC); s.quad(0, 0, h*1.2, -h/2, h*1.2, h/2, 0, h); // RIGHT
+    s.fill(topC); s.quad(0, -h, h*1.2, -h/2, 0, 0, -h*1.2, -h/2); // Re-fill top last
     s.pop();
   }
 
   function setupPyramid() {
     cubes = [];
     let lvl = levelsData[currentLevel];
-    for (let i = lvl - 1; i >= 0; i--) {
+    let topY = 220; // Peak position
+
+    for (let r = 0; r < lvl; r++) {
       let row = [];
-      for (let j = 0; j <= i; j++) {
-        // Narrower spacing (cubeSize * 1.8) to fit iPhone screen
-        let x = sketch.width / 2 + (j - i / 2) * (cubeSize * 1.8);
-        let y = 250 + (lvl - i) * (cubeSize * 0.75);
-        row.push({ x, y, compiled: false, pop: false });
+      for (let c = 0; c <= r; c++) {
+        // Narrower for Pro Max screen
+        let x = sketch.width / 2 + (c - r / 2) * (cubeSize * 2.1);
+        let y = topY + r * (cubeSize * 0.9);
+        row.push({ x, y, compiled: false, pop: 0, msg: "" });
       }
       cubes.push(row);
     }
