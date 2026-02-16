@@ -107,65 +107,45 @@ let levelsData = [6,5,4,6];
 let currentLevel = 0;
 let cubes = [];
 let cubeSize = 50;
-
 let azul, azulTarget, popFrames = 0;
 let azulCurses = ["@!#?@", "??!!#", "#$%@!", "G-L-I-T-C-H"];
 let mochkilSlang = ["Bussin!", "No Cap.", "Bet.", "W Hacker.", "Real!"];
-
 let score = 0;
 let gameWon = false;
 let gameStarted = false;
-
-// Pause & detection
 let isPaused = false;
 let detectionAlert = false;
-
-// Bad Guy
-let badImg;
+let badImg, azulImg;
 let badGuy = { row:0, col:0, x:0, y:0 };
 let badMoveTimer = 0;
-let badStartDelay = 120;  // frames before first move
-
-// Audio
+let badStartDelay = 120;
 const bgMusic = document.getElementById('bgMusic');
 let isMuted = false;
 
 // =====================
 // BUTTONS
 // =====================
-document.getElementById('home-btn').onclick = () => {
-  window.location.href = "https://MaximumReality.xyz";
-};
-
+document.getElementById('home-btn').onclick = () => { window.location.href = "https://MaximumReality.xyz"; };
 document.getElementById('mute-btn').onclick = ()=>{
   isMuted = !isMuted;
   bgMusic.muted = isMuted;
   document.getElementById('mute-btn').textContent = isMuted ? '🔇' : '🔊';
 };
-
 document.getElementById('next-btn').onclick = ()=>{
   document.getElementById('reward-screen').style.display='none';
   gameWon = false;
-  score = 0;
-  document.getElementById('score-display').textContent='Score: 0';
-  cubes.forEach(row => row.forEach(cube => cube.compiled = false));
-  document.getElementById('mochkil-img').src='mochkil-idle.png';
+  setupPyramid(currentLevel);
+  gameStarted = true;
 };
-
 document.getElementById('start-overlay').addEventListener('click', ()=>{
-  bgMusic.load();
   bgMusic.play().catch(()=>{});
   document.getElementById('start-overlay').style.display='none';
   gameStarted = true;
 });
 
-// =====================
-// TOGGLE PLAY / PAUSE
-// =====================
 function togglePlay() {
   isPaused = !isPaused;
-  if(isPaused) bgMusic.pause();
-  else bgMusic.play();
+  if(isPaused) bgMusic.pause(); else bgMusic.play();
   document.getElementById('play-pause-btn').innerText = isPaused ? "▶️" : "⏯️";
 }
 
@@ -173,45 +153,22 @@ function togglePlay() {
 // P5 SKETCH
 // =====================
 new p5((sketch) => {
-
-  // Preload images
   sketch.preload = function(){
     azulImg = sketch.loadImage('azul-tactical.png');
     badImg = sketch.loadImage('bad-guy.png');
   }
 
   sketch.setup = function(){
-  const canvas = sketch.createCanvas(sketch.windowWidth, sketch.windowHeight);
-  canvas.parent('p5-container');
-  sketch.noStroke();
-  setupPyramid(currentLevel);
+    const canvas = sketch.createCanvas(sketch.windowWidth, sketch.windowHeight);
+    canvas.parent('p5-container');
+    setupPyramid(currentLevel);
+    azul = { x:cubes[0][0].x, y:cubes[0][0].y, yOffset:0, row:0, col:0 };
+    azulTarget = { ...azul };
+    resetBadGuy();
+  };
 
-  // Initialize Azul (always top-left)
-  azul = { x:cubes[0][0].x, y:cubes[0][0].y, yOffset:0, row:0, col:0 };
-  azulTarget = { ...azul };
-
-  // Initialize Bad Guy offscreen left, same row as random cube below Azul
-  let badRow = Math.floor(sketch.random(1, cubes.length)); // row 1 or lower
-  let badCol = Math.floor(sketch.random(0, cubes[badRow].length));
-  badGuy.row = badRow;
-  badGuy.col = badCol;
-  badGuy.x = -cubeSize; // start offscreen left
-  badGuy.y = cubes[badRow][badCol].y;
-  badMoveTimer = 0;
-  badStartDelay = 60; // frames before he starts moving in
-}
-
-    sketch.draw = function() {
-    if (isPaused) {
-      sketch.fill(0,0,0,100);
-      sketch.rect(0,0,sketch.width,sketch.height);
-      sketch.fill(255);
-      sketch.textAlign(sketch.CENTER);
-      sketch.textSize(32);
-      sketch.text("SYSTEM PAUSED", sketch.width/2, sketch.height/2);
-      return;
-    }
-
+  sketch.draw = function() {
+    if (isPaused || !gameStarted) return;
     sketch.clear();
 
     // 1. Draw Cubes
@@ -221,14 +178,14 @@ new p5((sketch) => {
       }
     }
 
-    // 2. Draw & Move Azul
+    // 2. Draw Azul
     azul.x += (azulTarget.x - azul.x) * 0.2;
     azul.y += (azulTarget.y - azul.y) * 0.2;
     azul.yOffset = popFrames > 0 ? 10 * Math.sin(Math.PI*popFrames/10) : 0;
     sketch.imageMode(sketch.CENTER);
     sketch.image(azulImg, azul.x, azul.y - (cubeSize * 0.58) - azul.yOffset, cubeSize, cubeSize);
 
-    // 3. Bad Guy Slide-In Delay
+    // 3. Bad Guy Slide-In
     if(badStartDelay > 0){
       badStartDelay--; 
       let targetPos = cubes[badGuy.row][badGuy.col];
@@ -238,58 +195,47 @@ new p5((sketch) => {
       return; 
     }
 
-    // 4. Bad Guy AI Logic
-    if(gameStarted){
-      let d = sketch.dist(azul.x, azul.y, badGuy.x, badGuy.y);
-      detectionAlert = (d < 180 && azulTarget.x >= badGuy.x);
-
-      badMoveTimer++;
-      if(badMoveTimer > 75){ 
-        badMoveTimer = 0;
-        if(Math.random() > 0.3) { 
-          if(detectionAlert){
-            if(badGuy.row < azulTarget.row) badGuy.row++;
-            else if(badGuy.row > azulTarget.row) badGuy.row--;
-            if(badGuy.col < azulTarget.col) badGuy.col++;
-            else if(badGuy.col > azulTarget.col) badGuy.col--;
-          } else {
-            badGuy.col = sketch.constrain(badGuy.col + sketch.random([-1,1]), 0, cubes[badGuy.row].length - 1);
-          }
-          let pos = cubes[badGuy.row][badGuy.col];
-          badGuy.x = pos.x;
-          badGuy.y = pos.y;
-        } 
-      }
-
-      // 5. Collision Check
-      if(badGuy.row === azulTarget.row && badGuy.col === azulTarget.col){
-        alert("Azul was caught! 🌶️💥");
-        setupPyramid(currentLevel);
-        azul.row = 0; azul.col = 0;
-        azul.x = cubes[0][0].x; azul.y = cubes[0][0].y;
-        azulTarget.x = azul.x; azulTarget.y = azul.y;
-        badGuy.row = cubes.length - 1; badGuy.col = 0;
-        badGuy.x = -cubeSize;
-        badGuy.y = cubes[badGuy.row][0].y;
-        badMoveTimer = 0;
-        badStartDelay = 120;
-      }
+    // 4. Bad Guy AI
+    let d = sketch.dist(azul.x, azul.y, badGuy.x, badGuy.y);
+    detectionAlert = (d < 180 && azulTarget.x >= badGuy.x);
+    badMoveTimer++;
+    if(badMoveTimer > 75){ 
+      badMoveTimer = 0;
+      if(Math.random() > 0.3) { 
+        if(detectionAlert){
+          if(badGuy.row < azulTarget.row) badGuy.row++;
+          else if(badGuy.row > azulTarget.row) badGuy.row--;
+          if(badGuy.col < azulTarget.col) badGuy.col++;
+          else if(badGuy.col > azulTarget.col) badGuy.col--;
+        } else {
+          badGuy.col = sketch.constrain(badGuy.col + sketch.random([-1,1]), 0, cubes[badGuy.row].length - 1);
+        }
+        let pos = cubes[badGuy.row][badGuy.col];
+        badGuy.x = pos.x; badGuy.y = pos.y;
+      } 
     }
 
-    // 6. Draw Bad Guy & UI
+    // 5. Collision
+    if(badGuy.row === azulTarget.row && badGuy.col === azulTarget.col){
+      alert("Azul was caught! 🌶️💥");
+      setupPyramid(currentLevel);
+      azul.row = 0; azul.col = 0;
+      azul.x = cubes[0][0].x; azul.y = cubes[0][0].y;
+      azulTarget = { ...azul };
+      resetBadGuy();
+    }
+
     sketch.image(badImg, badGuy.x, badGuy.y - cubeSize*0.55, cubeSize, cubeSize);
     if(detectionAlert) {
-      sketch.fill(255,0,0);
-      sketch.textSize(40);
+      sketch.fill(255,0,0); sketch.textSize(40);
       sketch.text("!", badGuy.x, badGuy.y - 110);
     }
-
     if(popFrames > 0) popFrames--;
 
+    // Popups
     cubes.forEach(row => row.forEach(cube => {
       if(cube.pop){
-        sketch.textSize(16);
-        sketch.textAlign(sketch.CENTER);
+        sketch.textSize(16); sketch.textAlign(sketch.CENTER);
         sketch.fill(cube.fromMochkil ? '#ff00ff' : '#00ffff');
         sketch.text(cube.fromMochkil ? mochkilSlang[Math.floor(Math.random()*mochkilSlang.length)] : azulCurses[Math.floor(Math.random()*azulCurses.length)], cube.x, cube.y - 10 - popFrames);
         cube.pop = false;
@@ -297,26 +243,22 @@ new p5((sketch) => {
     }));
   };
 
-  }
-
-    // 1. Lowercase 's'
   sketch.mousePressed = function() {
+    if(!gameStarted || isPaused) return;
     for(let i=0; i<cubes.length; i++){
       for(let j=0; j<cubes[i].length; j++){
         let cube = cubes[i][j];
         if(sketch.mouseX > cube.x - cubeSize/2 && sketch.mouseX < cube.x + cubeSize/2 &&
            sketch.mouseY > cube.y - cubeSize/4 && sketch.mouseY < cube.y + cubeSize/4){
-          
           if(!cube.compiled) score++;
           cube.compiled = !cube.compiled;
           cube.pop = true;
           cube.fromMochkil = Math.random() < 0.3;
-          azulTarget.x = cube.x;
-          azulTarget.y = cube.y;
+          azulTarget.x = cube.x; azulTarget.y = cube.y;
+          azulTarget.row = i; azulTarget.col = j;
           popFrames = 10;
           document.getElementById('score-display').textContent = 'Score: ' + score;
-
-          // Win Check logic
+          
           let allCompiled = cubes.every(row => row.every(c => c.compiled));
           if (allCompiled) {
             document.getElementById('reward-screen').style.display = 'flex';
@@ -326,22 +268,24 @@ new p5((sketch) => {
         }
       }
     }
-  }; // Make sure this semicolon and bracket are here!
-}
+  };
+
+  function resetBadGuy() {
+    badGuy.row = cubes.length - 1; badGuy.col = 0;
+    badGuy.x = -cubeSize;
+    badGuy.y = cubes[badGuy.row][0].y;
+    badMoveTimer = 0; badStartDelay = 120;
+  }
 
   function drawIsoCube(cube, s){
     let x = cube.x, y = cube.y;
     let topColor = cube.compiled ? s.color(0,255,255) : s.color(255,0,85);
     let leftColor = cube.compiled ? s.color(0,180,180) : s.color(153,0,51);
     let rightColor = cube.compiled ? s.color(0,200,200) : s.color(204,0,68);
-
     s.push(); s.translate(x,y); s.noStroke();
-    s.fill(topColor);
-    s.quad(0, -cubeSize/2, cubeSize/2, -cubeSize/4, 0, 0, -cubeSize/2, -cubeSize/4);
-    s.fill(leftColor);
-    s.quad(-cubeSize/2, -cubeSize/4, 0, 0, 0, cubeSize/2, -cubeSize/2, cubeSize/4);
-    s.fill(rightColor);
-    s.quad(0,0, cubeSize/2, -cubeSize/4, cubeSize/2, cubeSize/4, 0, cubeSize/2);
+    s.fill(topColor); s.quad(0, -cubeSize/2, cubeSize/2, -cubeSize/4, 0, 0, -cubeSize/2, -cubeSize/4);
+    s.fill(leftColor); s.quad(-cubeSize/2, -cubeSize/4, 0, 0, 0, cubeSize/2, -cubeSize/2, cubeSize/4);
+    s.fill(rightColor); s.quad(0,0, cubeSize/2, -cubeSize/4, cubeSize/2, cubeSize/4, 0, cubeSize/2);
     s.pop();
   }
 
@@ -359,15 +303,11 @@ new p5((sketch) => {
     }
     score=0;
     document.getElementById('score-display').textContent='Score: 0';
-    document.getElementById('mochkil-img').src='mochkil-idle.png';
   }
-
 }, 'p5-container');
 
-// Service Worker registration
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').then(()=>console.log('SW registered'));
-}
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js'); }
 </script>
+
 </body>
 </html>
