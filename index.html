@@ -152,14 +152,29 @@ new p5((sketch)=>{
       }
     }
 
-    // Azul sprite
-    azul.x += (azulTarget.x-azul.x)*0.2;
-    azul.y += (azulTarget.y-azul.y)*0.2;
-    azul.yOffset = popFrames>0 ? 10*Math.sin(Math.PI*popFrames/10):0;
-    sketch.imageMode(sketch.CENTER);
-    sketch.image(azulImg, azul.x, azul.y - cubeSize*0.15 - azul.yOffset, cubeSize, cubeSize);
+    // === Azul sprite ===
+azul.x += (azulTarget.x - azul.x) * 0.2;
+azul.y += (azulTarget.y - azul.y) * 0.2;
 
-    if(popFrames>0) popFrames--;
+// bounce animation when landing
+azul.yOffset = popFrames > 0 
+  ? 10 * Math.sin(Math.PI * popFrames / 10) 
+  : 0;
+
+sketch.imageMode(sketch.CENTER);
+
+// Lift Azul so his FEET land on cube top
+let standOffset = cubeSize * 0.55;
+
+sketch.image(
+  azulImg,
+  azul.x,
+  azul.y - standOffset - azul.yOffset,
+  cubeSize,
+  cubeSize
+);
+
+if (popFrames > 0) popFrames--;
 
     // Pop-ups
     cubes.forEach(row=>row.forEach(cube=>{
