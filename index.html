@@ -16,7 +16,6 @@
     overflow: hidden;
     font-family: 'Courier New', monospace;
   }
-
   #hud-controls {
     position: fixed;
     top: 10px;
@@ -33,18 +32,7 @@
     transition: transform 0.1s;
   }
   .hud-btn:active { transform: scale(0.9); }
-
-  #score-display {
-    position: fixed;
-    top: 10px; left: 20px;
-    font-size: 2rem;
-    color: var(--neon-cyan);
-    text-shadow: 0 0 10px var(--neon-cyan);
-    z-index: 10000;
-  }
-
-  #reward-screen {
-    display: none;
+  #reward-screen, #start-screen {
     position: fixed;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
@@ -54,21 +42,44 @@
     text-align: center;
     padding: 30px;
     z-index: 20000;
+    display: none;
   }
-  #reward-screen img { width: 150px; margin-bottom: 10px; transition: all 0.5s ease; }
+  #reward-screen img { width: 150px; margin-bottom: 10px; }
+  #start-screen {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:2rem;
+    z-index:30000;
+    flex-direction:column;
+    text-align:center;
+  }
+  #score-display {
+    position:fixed;
+    top:10px; left:20px;
+    font-size:2rem;
+    color:var(--neon-cyan);
+    text-shadow:0 0 10px var(--neon-cyan);
+  }
 </style>
 </head>
 <body>
+
+<div id="start-screen">
+  <p>Tap anywhere to start</p>
+</div>
+
 <div id="score-display">Score: 0</div>
 
 <div id="hud-controls">
   <span class="hud-btn" onclick="goHome()">🏡</span>
-  <span class="hud-btn" id="muteBtn" onclick="toggleMute()">🔊</span>
+  <span class="hud-btn" id="music-toggle" onclick="toggleMusic()">⏯️</span>
+  <span class="hud-btn" id="mute-toggle" onclick="toggleMute()">🔇</span>
 </div>
 
 <div id="reward-screen">
   <h2>LEVEL COMPLETE!</h2>
-  <img id="mochkil-img" src="mochkil-idle.png" alt="Mochkil">
+  <img id="mochkilImg" src="mochkil-idle.png" alt="Mochkil">
   <p>All cubes compiled. You win!</p>
   <button onclick="nextLevel()" style="padding:10px 20px; background:var(--neon-cyan); border:none; color:#000; font-weight:bold;">Next Level</button>
 </div>
@@ -85,37 +96,45 @@ let levelsData = [6,5,4,6];
 let currentLevel = 0;
 let cubes = [];
 let azul, azulTarget, popFrames = 0;
+let score = 0;
 let azulCurses = ["@!#?@", "??!!#", "#$%@!", "G-L-I-T-C-H"];
 let mochkilSlang = ["Bussin!", "No Cap.", "Bet.", "W Hacker.", "Real!"];
-let score = 0;
-let firstTap = false;
-let isMuted = false;
 
 const bgMusic = document.getElementById('bgMusic');
 const hopSound = document.getElementById('hopSound');
 const victorySound = document.getElementById('victorySound');
-const muteBtn = document.getElementById('muteBtn');
-const mochkilImg = document.getElementById('mochkil-img');
+const startScreen = document.getElementById('start-screen');
+const mochkilImg = document.getElementById('mochkilImg');
+let isMuted = false;
 
-function toggleMute(){
-  isMuted = !isMuted;
-  bgMusic.muted = isMuted;
-  hopSound.muted = isMuted;
-  victorySound.muted = isMuted;
-  muteBtn.textContent = isMuted ? '🔇' : '🔊';
+function toggleMusic() { 
+  if(bgMusic.paused) { bgMusic.play(); document.getElementById('music-toggle').textContent="⏸️"; }
+  else { bgMusic.pause(); document.getElementById('music-toggle').textContent="▶️"; }
 }
-
+function toggleMute() { 
+  isMuted = !isMuted; 
+  bgMusic.muted = hopSound.muted = victorySound.muted = isMuted; 
+  document.getElementById('mute-toggle').textContent = isMuted?"🔇":"🔊";
+}
 function goHome(){ window.location.href="https://MaximumReality.xyz"; }
+
+startScreen.addEventListener('click', ()=>{
+  bgMusic.play().catch(e=>console.log("Tap required for iPhone audio"));
+  startScreen.style.display='none';
+});
 
 function nextLevel(){
   document.getElementById('reward-screen').style.display='none';
+  mochkilImg.src='mochkil-idle.png';
   score = 0;
-  document.getElementById('score-display').textContent = 'Score: 0';
+  document.getElementById('score-display').textContent='Score: 0';
+  currentLevel = (currentLevel + 1) % levelsData.length;
   setupPyramid(currentLevel);
-  mochkilImg.src = 'mochkil-idle.png';
+  azul.x = cubes[0][0].x; azul.y = cubes[0][0].y;
+  azulTarget.x = azul.x; azulTarget.y = azul.y;
+  popFrames = 0;
 }
 
-// p5.js sketch
 new p5((sketch)=>{
   let cubeSize = 50;
   let azulImg;
@@ -136,35 +155,31 @@ new p5((sketch)=>{
   sketch.draw = function(){
     sketch.clear();
 
-    // draw cubes back-to-front
+    // Draw cubes back-to-front
     for(let i=cubes.length-1;i>=0;i--){
       for(let j=0;j<cubes[i].length;j++){
-        drawIsoCube(cubes[i][j], sketch, cubeSize);
+        drawIsoCube(cubes[i][j], sketch);
       }
     }
 
     // Azul sprite
-    azul.x += (azulTarget.x - azul.x) * 0.2;
-    azul.y += (azulTarget.y - azul.y) * 0.2;
-    azul.yOffset = popFrames > 0 ? 10*Math.sin(Math.PI*popFrames/10) : 0;
-
+    azul.x += (azulTarget.x-azul.x)*0.2;
+    azul.y += (azulTarget.y-azul.y)*0.2;
+    azul.yOffset = popFrames>0?10*Math.sin(Math.PI*popFrames/10):0;
     sketch.imageMode(sketch.CENTER);
     sketch.image(azulImg, azul.x, azul.y - cubeSize*0.15 - azul.yOffset, cubeSize, cubeSize);
 
     if(popFrames>0) popFrames--;
 
-    // Pop-up text
-    cubes.forEach(row => row.forEach(cube=>{
+    // Pop-up texts
+    cubes.forEach(row=>row.forEach(cube=>{
       if(cube.pop){
         sketch.textSize(16);
         sketch.textAlign(sketch.CENTER);
-        if(cube.fromMochkil){
-          sketch.fill('#ff00ff');
-          sketch.text(mochkilSlang[Math.floor(Math.random()*mochkilSlang.length)], cube.x, cube.y - 10 - popFrames);
-        } else {
-          sketch.fill('#00ffff');
-          sketch.text(azulCurses[Math.floor(Math.random()*azulCurses.length)], cube.x, cube.y - 10 - popFrames);
-        }
+        sketch.fill(cube.fromMochkil?'#ff00ff':'#00ffff');
+        sketch.text(cube.fromMochkil ? mochkilSlang[Math.floor(Math.random()*mochkilSlang.length)]
+                                     : azulCurses[Math.floor(Math.random()*azulCurses.length)],
+                   cube.x, cube.y - 10 - popFrames);
         cube.pop=false;
       }
     }));
@@ -173,43 +188,36 @@ new p5((sketch)=>{
   }
 
   sketch.mousePressed = function(){
-    if(!firstTap){
-      firstTap = true;
-      bgMusic.play().catch(e=>console.log("Music blocked until tap"));
-    }
-
     for(let i=0;i<cubes.length;i++){
       for(let j=0;j<cubes[i].length;j++){
-        let cube=cubes[i][j];
+        let cube = cubes[i][j];
         if(sketch.mouseX>cube.x-cubeSize/2 && sketch.mouseX<cube.x+cubeSize/2 &&
            sketch.mouseY>cube.y-cubeSize/4 && sketch.mouseY<cube.y+cubeSize/4){
           if(!cube.compiled) score++;
           cube.compiled = !cube.compiled;
           cube.pop = true;
-          cube.fromMochkil = Math.random() < 0.3;
+          cube.fromMochkil = Math.random()<0.3;
           azulTarget.x = cube.x;
           azulTarget.y = cube.y;
-          popFrames = 10;
+          popFrames=10;
           if(!isMuted) hopSound.play();
-          document.getElementById('score-display').textContent = 'Score: '+score;
+          document.getElementById('score-display').textContent='Score: '+score;
         }
       }
     }
   }
 
-  function drawIsoCube(cube, s, size){
-    let topColor = cube.compiled ? s.color(0,255,255) : s.color(255,0,85);
-    let leftColor = cube.compiled ? s.color(0,180,180) : s.color(153,0,51);
-    let rightColor = cube.compiled ? s.color(0,200,200) : s.color(204,0,68);
-
-    s.push(); s.translate(cube.x, cube.y);
-    s.noStroke();
+  function drawIsoCube(cube,s){
+    let topColor=cube.compiled?s.color(0,255,255):s.color(255,0,85);
+    let leftColor=cube.compiled?s.color(0,180,180):s.color(153,0,51);
+    let rightColor=cube.compiled?s.color(0,200,200):s.color(204,0,68);
+    s.push(); s.translate(cube.x,cube.y); s.noStroke();
     s.fill(topColor);
-    s.quad(0, -size/2, size/2, -size/4, 0, 0, -size/2, -size/4); // top
+    s.quad(0,-cubeSize/2, cubeSize/2,-cubeSize/4, 0,0, -cubeSize/2,-cubeSize/4);
     s.fill(leftColor);
-    s.quad(-size/2, -size/4, 0,0, 0,size/2, -size/2,size/4); // left
+    s.quad(-cubeSize/2,-cubeSize/4,0,0,0,cubeSize/2,-cubeSize/2,cubeSize/4);
     s.fill(rightColor);
-    s.quad(0,0, size/2,-size/4, size/2,size/4, 0,size/2); // right
+    s.quad(0,0, cubeSize/2,-cubeSize/4, cubeSize/2,cubeSize/4,0,cubeSize/2);
     s.pop();
   }
 
@@ -222,13 +230,13 @@ new p5((sketch)=>{
   }
 
   function setupPyramid(levelIndex){
-    cubes = [];
+    cubes=[];
     let lvl = levelsData[levelIndex];
     for(let i=lvl-1;i>=0;i--){
       let row=[];
       for(let j=0;j<=i;j++){
-        let x = sketch.width/2 + (j - i/2) * 50;
-        let y = sketch.height - (lvl - i) * (50 * 0.75);
+        let x = sketch.width/2 + (j - i/2) * cubeSize;
+        let y = sketch.height - (lvl - i) * (cubeSize * 0.75);
         row.push({x,y,compiled:false,pop:false});
       }
       cubes.push(row);
