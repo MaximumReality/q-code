@@ -299,12 +299,14 @@ new p5((sketch) => {
 
   }
 
-  sketch.mousePressed = function(){
-    for(let i=0;i<cubes.length;i++){
-      for(let j=0;j<cubes[i].length;j++){
+    // 1. Lowercase 's'
+  sketch.mousePressed = function() {
+    for(let i=0; i<cubes.length; i++){
+      for(let j=0; j<cubes[i].length; j++){
         let cube = cubes[i][j];
         if(sketch.mouseX > cube.x - cubeSize/2 && sketch.mouseX < cube.x + cubeSize/2 &&
            sketch.mouseY > cube.y - cubeSize/4 && sketch.mouseY < cube.y + cubeSize/4){
+          
           if(!cube.compiled) score++;
           cube.compiled = !cube.compiled;
           cube.pop = true;
@@ -313,18 +315,19 @@ new p5((sketch) => {
           azulTarget.y = cube.y;
           popFrames = 10;
           document.getElementById('score-display').textContent = 'Score: ' + score;
-          // Check for Win: Are all cubes compiled?
-let allCompiled = cubes.every(row => row.every(cube => cube.compiled));
-if (allCompiled) {
-  document.getElementById('reward-screen').style.display = 'flex';
-  document.getElementById('mochkil-img').src = 'mochkil-yes.png'; // Happy Mochkil!
-  gameStarted = false; // Stop the bot while celebrating
-}
 
+          // Win Check logic
+          let allCompiled = cubes.every(row => row.every(c => c.compiled));
+          if (allCompiled) {
+            document.getElementById('reward-screen').style.display = 'flex';
+            document.getElementById('mochkil-img').src = 'mochkil-yes.png';
+            gameStarted = false;
+          }
         }
       }
     }
-  }
+  }; // Make sure this semicolon and bracket are here!
+}
 
   function drawIsoCube(cube, s){
     let x = cube.x, y = cube.y;
