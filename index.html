@@ -95,7 +95,8 @@ let azulImg, badImg;
 let gameWon = false;
 const bgMusic = document.getElementById('bgMusic');
 let isMuted = false;
-
+let gameStarted = false;
+  
 // Buttons
 document.getElementById('home-btn').onclick = () => {
   window.location.href = "https://MaximumReality.xyz";
@@ -138,6 +139,7 @@ document.getElementById('start-overlay').addEventListener('click', ()=>{
   });
 
   document.getElementById('start-overlay').style.display='none';
+  gameStarted = true;
 });
 
 // p5 sketch
@@ -179,44 +181,44 @@ new p5((sketch)=>{
       }
     }
 
-    // === Azul sprite ===
-    azul.x += (azulTarget.x - azul.x) * 0.2;
-    azul.y += (azulTarget.y - azul.y) * 0.2;
-    azul.yOffset = popFrames > 0 ? 10 * Math.sin(Math.PI * popFrames/10) : 0;
-    let standOffset = cubeSize * 0.58;
-    sketch.imageMode(sketch.CENTER);
-    sketch.image(azulImg, azul.x, azul.y - standOffset - azul.yOffset, cubeSize, cubeSize);
+// === Azul sprite ===
+azul.x += (azulTarget.x - azul.x) * 0.2;
+azul.y += (azulTarget.y - azul.y) * 0.2;
+azul.yOffset = popFrames > 0 ? 10 * Math.sin(Math.PI * popFrames/10) : 0;
+let standOffset = cubeSize * 0.58;
+sketch.imageMode(sketch.CENTER);
+sketch.image(azulImg, azul.x, azul.y - standOffset - azul.yOffset, cubeSize, cubeSize);
 
-    // === Bad Guy movement ===
-    badMoveTimer++;
-    if(badMoveTimer > 30){
-      badMoveTimer = 0;
-      // Move toward Azul: row first, then column
-      if(badGuy.row < azulTarget.row) badGuy.row++;
-      else if(badGuy.col < azulTarget.col) badGuy.col++;
-      let pos = cubes[badGuy.row][badGuy.col];
-      badGuy.x = pos.x;
-      badGuy.y = pos.y;
-    }
+// === Bad Guy movement ===
+badMoveTimer++;
+if(badMoveTimer > 30){
+  badMoveTimer = 0;
+  // Move toward Azul: row first, then column
+  if(badGuy.row < azulTarget.row) badGuy.row++;
+  else if(badGuy.col < azulTarget.col) badGuy.col++;
+  let pos = cubes[badGuy.row][badGuy.col];
+  badGuy.x = pos.x;
+  badGuy.y = pos.y;
+}
 
-    // Draw Bad Guy
-    sketch.image(badImg, badGuy.x, badGuy.y - cubeSize*0.55, cubeSize, cubeSize);
+// Draw Bad Guy
+sketch.image(badImg, badGuy.x, badGuy.y - cubeSize*0.55, cubeSize, cubeSize);
 
-    // Check collision
-    if(badGuy.row === azulTarget.row && badGuy.col === azulTarget.col){
-      alert("Azul was caught! 🌶️💥");
-      setupPyramid(currentLevel);  // reset board
+// ✅ Collision check — only once, and only if game has started
+if(gameStarted && badGuy.row === azulTarget.row && badGuy.col === azulTarget.col){
+  alert("Azul was caught! 🌶️💥");
+  setupPyramid(currentLevel);  // reset board
 
-      azul.x = cubes[0][0].x; azul.y = cubes[0][0].y;
-      azulTarget.x = azul.x; azulTarget.y = azul.y;
-      azul.row = 0; azul.col = 0;
+  azul.x = cubes[0][0].x; azul.y = cubes[0][0].y;
+  azulTarget.x = azul.x; azulTarget.y = azul.y;
+  azul.row = 0; azul.col = 0;
 
-      badGuy.row = 0; badGuy.col = 0;
-      badGuy.x = cubes[0][0].x; badGuy.y = cubes[0][0].y;
-      badMoveTimer = 0;
-    }
+  badGuy.row = 0; badGuy.col = 0;
+  badGuy.x = cubes[0][0].x; badGuy.y = cubes[0][0].y;
+  badMoveTimer = 0;
+}
 
-    if(popFrames > 0) popFrames--;
+if(popFrames > 0) popFrames--;
 
     // Pop-ups
     cubes.forEach(row=>row.forEach(cube=>{
