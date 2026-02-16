@@ -1,0 +1,22 @@
+{
+  "name": "Q-Code Pyramid",
+  "short_name": "QCode",
+  "description": "Isometric cube game with Azul and Bad Guy hacking adventures!",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#00ffff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "clean-poster1.PNG",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "clean-poster1.PNG",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
