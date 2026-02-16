@@ -1,9 +1,10 @@
-const CACHE_NAME = 'qcode-pyramid-v1.1';
+const CACHE_NAME = 'qcode-pyramid-v1.2';
 const ASSETS = [
   '/',
   '/index.html',
   '/sw.js',
   '/clean-poster.PNG',
+  '/bad-guy.png',
   '/a-sunny-day.mp3',
   '/azul-tactical.png',
   '/mochkil-idle.png',
