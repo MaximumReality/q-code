@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Q-Code Isometric Pyramid</title>
+<title>Q-Code Restoration</title>
 <style>
   :root { --neon-pink:#ff00ff; --neon-cyan:#00ffff; }
   body {
@@ -11,74 +11,59 @@
     background-size:cover; overflow:hidden; font-family:'Courier New', monospace;
   }
   #score-display {
-    position:fixed; top:20px; left:20px; font-size:2rem; 
+    position:fixed; top:20px; left:20px; font-size:1.8rem; 
     color:var(--neon-cyan); text-shadow:0 0 10px var(--neon-cyan); z-index: 100;
   }
   #hud-controls { position:fixed; top:20px; right:20px; display:flex; gap:15px; z-index:10000; }
   .hud-btn { font-size:2rem; cursor:pointer; filter: drop-shadow(0 0 5px var(--neon-cyan)); }
   
-  #reward-screen {
-    display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-    background:rgba(0,0,0,0.9); border:3px solid var(--neon-cyan);
-    color:var(--neon-pink); text-align:center; padding:30px; z-index:20000;
-    width: 80%; border-radius: 15px;
-  }
-  #reward-screen img { width:180px; margin-bottom:10px; }
   #p5-container { position: absolute; top: 0; left: 0; }
+
+  /* Ensure the Mute button reflects the state */
+  #mute-icon::after { content: "🔇"; }
+  .is-unmuted #mute-icon::after { content: "🔊"; }
 </style>
 </head>
-<body>
+<body class="is-unmuted">
 
 <div id="score-display">Score: 0</div>
 
 <div id="hud-controls">
   <span class="hud-btn" onclick="goHome()">🏡</span>
   <span class="hud-btn" onclick="toggleMusic()">⏯️</span>
-  <span class="hud-btn" onclick="toggleMute()">🔇</span>
-</div>
-
-<div id="reward-screen">
-  <h2>LEVEL COMPLETE!</h2>
-  <img src="mochkil-idle.png" alt="Mochkil">
-  <p id="victory-text">All cubes compiled. You win!</p>
-  <button onclick="nextLevel()" style="padding:10px 20px; background:var(--neon-cyan); border:none; color:#000; font-weight:bold;">Next Level</button>
+  <span class="hud-btn" id="mute-icon" onclick="toggleMute()"></span>
 </div>
 
 <div id="p5-container"></div>
 
 <audio id="bgMusic" src="a-sunny-day.mp3" loop></audio>
 <audio id="hopSound" src="hop.wav"></audio>
-<audio id="victorySound" src="victory.wav"></audio>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
 <script>
-let levelsData = [6, 5, 4, 7], currentLevel = 0, cubes = [], azul, azulTarget, popFrames = 0;
-let azulCurses = ["@!#?@!", "??!!#", "#$%@!", "G-L-I-T-C-H"];
-let mochkilSlang = ["Bussin!", "No Cap.", "Bet.", "W Hacker.", "Real!"];
+let levelsData = [6, 7, 5], currentLevel = 0, cubes = [], azul, azulTarget, popFrames = 0;
+let azulCurses = ["@!#?@!", "??!!#", "#$%@!", "G-L-I-T-C-H", "CORE_DUMP!!"];
 let score = 0;
 
 const bgMusic = document.getElementById('bgMusic');
 const hopSound = document.getElementById('hopSound');
-const victorySound = document.getElementById('victorySound');
 let isMuted = false;
 
-function toggleMusic() { bgMusic.paused ? bgMusic.play() : bgMusic.pause(); }
+function toggleMusic() { 
+  if(bgMusic.paused) { bgMusic.play().catch(e => console.log("Unlock required")); }
+  else { bgMusic.pause(); }
+}
+
 function toggleMute() { 
     isMuted = !isMuted; 
-    bgMusic.muted = hopSound.muted = victorySound.muted = isMuted; 
+    bgMusic.muted = hopSound.muted = isMuted;
+    document.body.classList.toggle('is-unmuted', !isMuted);
 }
+
 function goHome() { window.location.href = "https://MaximumReality.xyz"; }
 
-function nextLevel() {
-    currentLevel = (currentLevel + 1) % levelsData.length;
-    score = 0;
-    document.getElementById('score-display').textContent = 'Score: 0';
-    document.getElementById('reward-screen').style.display = 'none';
-    window.initLevel();
-}
-
 new p5((sketch) => {
-  let cubeSize = 55; // Calibrated for iPhone 14 Pro Max
+  let cubeSize = 45; // Size of the top diamond
   let azulImg;
 
   sketch.preload = function() {
@@ -86,124 +71,109 @@ new p5((sketch) => {
   }
 
   sketch.setup = function() {
-    const canvas = sketch.createCanvas(sketch.windowWidth, sketch.windowHeight);
-    canvas.parent('p5-container');
-    window.initLevel = setupPyramid;
+    sketch.createCanvas(sketch.windowWidth, sketch.windowHeight).parent('p5-container');
     setupPyramid();
   }
 
   sketch.draw = function() {
     sketch.clear();
     
-    // DRAW PYRAMID: Peak to Base for correct 3D overlap
+    // 1. Draw Cubes with 3D Depth
     for (let r = 0; r < cubes.length; r++) {
       for (let c = 0; c < cubes[r].length; c++) {
-        drawIsoCube(cubes[r][c], sketch);
+        drawSolidCube(cubes[r][c], sketch);
       }
     }
 
-    // AZUL MOVEMENT & SCALING
+    // 2. Azul Movement (Bigger Sprite)
     azul.x += (azulTarget.x - azul.x) * 0.2;
     azul.y += (azulTarget.y - azul.y) * 0.2;
-    let jumpY = popFrames > 0 ? Math.sin(sketch.map(popFrames, 0, 15, 0, Math.PI)) * 20 : 0;
+    let jumpY = popFrames > 0 ? Math.sin(sketch.map(popFrames, 0, 15, 0, Math.PI)) * 30 : 0;
 
     sketch.imageMode(sketch.CENTER);
-    // Adjusted size to 1.5x cubeSize so he looks proportional
-    sketch.image(azulImg, azul.x, azul.y - cubeSize/2 - jumpY, cubeSize * 1.5, cubeSize * 1.5);
+    // Draw Azul larger so he fits the 3D blocks
+    sketch.image(azulImg, azul.x, azul.y - 30 - jumpY, 80, 80);
 
     if (popFrames > 0) popFrames--;
 
-    // FLOATING TEXT
+    // 3. Q*bert Cussing Only
     cubes.flat().forEach(cube => {
       if (cube.showText > 0) {
-        sketch.fill(cube.fromMochkil ? '#ff00ff' : '#00ffff');
+        sketch.fill('#00ffff');
         sketch.textAlign(sketch.CENTER);
-        sketch.textSize(22);
-        sketch.text(cube.activeMsg, cube.x, cube.y - 80 - (20 - cube.showText));
+        sketch.textSize(24);
+        sketch.text(cube.activeMsg, cube.x, cube.y - 100 - (20 - cube.showText));
         cube.showText--;
       }
     });
-
-    checkVictory();
   }
 
   sketch.mousePressed = function() {
-    // iPhone Audio Unlock
+    // iPhone Gesture Unlock for Audio
     if (bgMusic.paused && !isMuted) bgMusic.play();
 
     for (let r = 0; r < cubes.length; r++) {
       for (let c = 0; c < cubes[r].length; c++) {
         let cube = cubes[r][c];
-        // Tightened hit detection for the Pro Max screen
-        if (sketch.dist(sketch.mouseX, sketch.mouseY, cube.x, cube.y - 10) < cubeSize * 0.8) {
-          if (!cube.compiled) {
-            score++;
-            cube.compiled = true;
-          }
+        if (sketch.dist(sketch.mouseX, sketch.mouseY, cube.x, cube.y) < 40) {
+          if (!cube.compiled) { score++; cube.compiled = true; }
           
           azulTarget.x = cube.x;
           azulTarget.y = cube.y;
           popFrames = 15;
           
-          cube.fromMochkil = Math.random() < 0.3;
-          cube.activeMsg = cube.fromMochkil ? sketch.random(mochkilSlang) : sketch.random(azulCurses);
-          cube.showText = 20;
+          cube.activeMsg = sketch.random(azulCurses);
+          cube.showText = 25;
 
-          if (!isMuted) hopSound.play();
+          if (!isMuted) { hopSound.currentTime = 0; hopSound.play(); }
           document.getElementById('score-display').textContent = 'Score: ' + score;
         }
       }
     }
   }
 
-  function drawIsoCube(cube, s) {
+  function drawSolidCube(cube, s) {
     let x = cube.x;
     let y = cube.y;
-    let tColor = cube.compiled ? s.color(0, 255, 255) : s.color(255, 0, 85);
-    let lColor = cube.compiled ? s.color(0, 180, 180) : s.color(153, 0, 51);
-    let rColor = cube.compiled ? s.color(0, 200, 200) : s.color(204, 0, 68);
+    let h = cubeSize; // height of faces
+    
+    let tCol = cube.compiled ? s.color(0, 255, 255) : s.color(255, 0, 85);
+    let lCol = cube.compiled ? s.color(0, 150, 150) : s.color(150, 0, 50);
+    let rCol = cube.compiled ? s.color(0, 200, 200) : s.color(200, 0, 70);
 
     s.push();
     s.translate(x, y);
-    // Top face
-    s.fill(tColor);
-    s.quad(0, -cubeSize/2, cubeSize, -cubeSize/4, 0, 0, -cubeSize, -cubeSize/4);
-    // Left face
-    s.fill(lColor);
-    s.quad(-cubeSize, -cubeSize/4, 0, 0, 0, cubeSize/2, -cubeSize, cubeSize/4);
-    // Right face
-    s.fill(rColor);
-    s.quad(0, 0, cubeSize, -cubeSize/4, cubeSize, cubeSize/4, 0, cubeSize/2);
+    
+    // TOP FACE
+    s.fill(tCol);
+    s.quad(0, -h, h*1.2, -h/2, 0, 0, -h*1.2, -h/2);
+    
+    // LEFT FACE
+    s.fill(lCol);
+    s.quad(-h*1.2, -h/2, 0, 0, 0, h, -h*1.2, h/2);
+    
+    // RIGHT FACE
+    s.fill(rCol);
+    s.quad(0, 0, h*1.2, -h/2, h*1.2, h/2, 0, h);
+    
     s.pop();
   }
 
   function setupPyramid() {
     cubes = [];
     let lvl = levelsData[currentLevel];
-    let topY = 220; // Keeps the peak below the HUD
-    
     for (let r = 0; r < lvl; r++) {
       let row = [];
       for (let c = 0; c <= r; c++) {
-        let x = sketch.width / 2 + (c - r / 2) * (cubeSize * 1.8);
-        let y = topY + r * (cubeSize * 0.75);
-        row.push({ x, y, compiled: false, showText: 0, activeMsg: "", fromMochkil: false });
+        let x = sketch.width / 2 + (c - r / 2) * (cubeSize * 2.4);
+        let y = 200 + r * (cubeSize * 1.5);
+        row.push({ x, y, compiled: false, showText: 0, activeMsg: "" });
       }
       cubes.push(row);
     }
     azul = { x: cubes[0][0].x, y: cubes[0][0].y };
     azulTarget = { x: cubes[0][0].x, y: cubes[0][0].y };
   }
-
-  function checkVictory() {
-    if (cubes.flat().length > 0 && cubes.flat().every(c => c.compiled)) {
-      if (document.getElementById('reward-screen').style.display !== 'block') {
-        if (!isMuted) victorySound.play();
-        document.getElementById('reward-screen').style.display = 'block';
-      }
-    }
-  }
-
 }, 'p5-container');
 </script>
 </body>
