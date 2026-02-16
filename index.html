@@ -11,51 +11,44 @@
     background-size:cover; overflow:hidden; font-family:'Courier New', monospace;
   }
   #score-display {
-    position:fixed; top:20px; left:20px; font-size:1.8rem; 
+    position:fixed; top:env(safe-area-inset-top, 20px); left:20px; font-size:1.8rem; 
     color:var(--neon-cyan); text-shadow:0 0 10px var(--neon-cyan); z-index: 100;
   }
-  #hud-controls { position:fixed; top:20px; right:20px; display:flex; gap:15px; z-index:10000; }
-  .hud-btn { font-size:2rem; cursor:pointer; }
+  #hud-controls { position:fixed; top:env(safe-area-inset-top, 20px); right:20px; display:flex; gap:15px; z-index:10000; }
+  .hud-btn { font-size:2rem; cursor:pointer; filter: drop-shadow(0 0 5px var(--neon-cyan)); }
   #p5-container { position: absolute; top: 0; left: 0; }
-  
-  /* The Fix for the Audio Toggle Icon */
-  #mute-btn::after { content: "🔊"; }
-  .muted #mute-btn::after { content: "🔇"; }
 </style>
 </head>
-<body id="game-body">
+<body>
 
 <div id="score-display">Score: 0</div>
-
 <div id="hud-controls">
   <span class="hud-btn" onclick="goHome()">🏡</span>
   <span class="hud-btn" onclick="toggleMusic()">⏯️</span>
-  <span class="hud-btn" id="mute-btn" onclick="toggleMute()"></span>
+  <span class="hud-btn" id="mute-btn" onclick="toggleMute()">🔇</span>
 </div>
 
 <div id="p5-container"></div>
 
-<audio id="bgMusic" src="a-sunny-day.mp3" loop></audio>
-<audio id="hopSound" src="hop.wav"></audio>
+<audio id="bgMusic" src="a-sunny-day.mp3" loop preload="auto"></audio>
+<audio id="hopSound" src="hop.wav" preload="auto"></audio>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
 <script>
-let levelsData = [6, 5, 7], currentLevel = 0, cubes = [], azul, azulTarget, popFrames = 0;
-let azulCurses = ["@!#?@!", "??!!#", "#$%@!", "G-L-I-T-C-H", "CORE_DUMP!!"];
+let levelsData = [6, 5, 4], currentLevel = 0, cubes = [], azul, azulTarget, popFrames = 0;
+let azulCurses = ["@!#?@!", "??!!#", "#$%@!", "G-L-I-T-C-H"];
 let score = 0;
+let audioStarted = false;
 
 const bgMusic = document.getElementById('bgMusic');
 const hopSound = document.getElementById('hopSound');
 
 function toggleMusic() { bgMusic.paused ? bgMusic.play() : bgMusic.pause(); }
-function toggleMute() { 
-  bgMusic.muted = hopSound.muted = !bgMusic.muted;
-  document.getElementById('game-body').classList.toggle('muted');
-}
+function toggleMute() { bgMusic.muted = hopSound.muted = !bgMusic.muted; document.getElementById('mute-btn').innerText = bgMusic.muted ? "🔊" : "🔇"; }
 function goHome() { window.location.href = "https://MaximumReality.xyz"; }
 
 new p5((sketch) => {
-  let cubeW = 40; // NARROWER for iPhone screen
+  let cubeSize = 42; // Perfect scale for iPhone width
   let azulImg;
 
   sketch.preload = function() {
@@ -70,49 +63,51 @@ new p5((sketch) => {
   sketch.draw = function() {
     sketch.clear();
     
-    // 1. Draw solid 3D cubes (Back to Front)
-    for (let r = 0; r < cubes.length; r++) {
+    // Draw from back to front for correct 3D stacking
+    for (let r = cubes.length - 1; r >= 0; r--) {
       for (let c = 0; c < cubes[r].length; c++) {
-        drawSolidCube(cubes[r][c], sketch);
+        drawIsoCube(cubes[r][c], sketch);
       }
     }
 
-    // 2. Azul Physics & Scaling
+    // Azul Movement
     azul.x += (azulTarget.x - azul.x) * 0.2;
     azul.y += (azulTarget.y - azul.y) * 0.2;
-    let jumpY = popFrames > 0 ? Math.sin(sketch.map(popFrames, 0, 15, 0, Math.PI)) * 25 : 0;
+    let hop = popFrames > 0 ? Math.sin(sketch.map(popFrames, 0, 10, 0, Math.PI)) * 15 : 0;
 
     sketch.imageMode(sketch.CENTER);
-    sketch.image(azulImg, azul.x, azul.y - 35 - jumpY, 80, 80); // Big Azul is back
+    sketch.image(azulImg, azul.x, azul.y - 25 - hop, 70, 70);
 
     if (popFrames > 0) popFrames--;
 
-    // 3. Q*bert Cussing
+    // Floating Curses
     cubes.flat().forEach(cube => {
-      if (cube.showText > 0) {
+      if (cube.pop) {
         sketch.fill('#00ffff');
-        sketch.textAlign(sketch.CENTER);
-        sketch.textSize(24);
-        sketch.text(cube.activeMsg, cube.x, cube.y - 80 - (20 - cube.showText));
-        cube.showText--;
+        sketch.textSize(20);
+        sketch.text(sketch.random(azulCurses), cube.x, cube.y - 60 - (10 - popFrames));
+        if (popFrames === 0) cube.pop = false;
       }
     });
   }
 
   sketch.mousePressed = function() {
-    // Attempt to start music on first touch (Safari requirement)
-    if (bgMusic.paused) bgMusic.play();
+    // FORCE AUDIO UNLOCK
+    if (!audioStarted) {
+      bgMusic.play();
+      audioStarted = true;
+    }
 
     for (let r = 0; r < cubes.length; r++) {
       for (let c = 0; c < cubes[r].length; c++) {
         let cube = cubes[r][c];
+        // Optimized tap detection for mobile
         if (sketch.dist(sketch.mouseX, sketch.mouseY, cube.x, cube.y) < 35) {
           if (!cube.compiled) { score++; cube.compiled = true; }
           azulTarget.x = cube.x;
           azulTarget.y = cube.y;
-          popFrames = 15;
-          cube.activeMsg = sketch.random(azulCurses);
-          cube.showText = 25;
+          cube.pop = true;
+          popFrames = 10;
           hopSound.currentTime = 0;
           hopSound.play();
           document.getElementById('score-display').textContent = 'Score: ' + score;
@@ -121,43 +116,42 @@ new p5((sketch) => {
     }
   }
 
-  function drawSolidCube(cube, s) {
+  function drawIsoCube(cube, s) {
     let x = cube.x, y = cube.y;
-    let size = cubeW;
-    
     let topC = cube.compiled ? s.color(0, 255, 255) : s.color(255, 0, 85);
-    let leftC = cube.compiled ? s.color(0, 150, 150) : s.color(150, 0, 50);
-    let rightC = cube.compiled ? s.color(0, 200, 200) : s.color(200, 0, 70);
+    let leftC = cube.compiled ? s.color(0, 180, 180) : s.color(153, 0, 51);
+    let rightC = cube.compiled ? s.color(0, 200, 200) : s.color(204, 0, 68);
 
     s.push();
     s.translate(x, y);
-    // TOP
+    s.noStroke();
+    // Top
     s.fill(topC);
-    s.quad(0, -size, size * 1.2, -size/2, 0, 0, -size * 1.2, -size/2);
-    // LEFT
+    s.quad(0, -cubeSize/2, cubeSize, -cubeSize/4, 0, 0, -cubeSize, -cubeSize/4);
+    // Left
     s.fill(leftC);
-    s.quad(-size * 1.2, -size/2, 0, 0, 0, size, -size * 1.2, size/2);
-    // RIGHT
+    s.quad(-cubeSize, -cubeSize/4, 0, 0, 0, cubeSize/2, -cubeSize, cubeSize/4);
+    // Right
     s.fill(rightC);
-    s.quad(0, 0, size * 1.2, -size/2, size * 1.2, size/2, 0, size);
+    s.quad(0, 0, cubeSize, -cubeSize/4, cubeSize, cubeSize/4, 0, cubeSize/2);
     s.pop();
   }
 
   function setupPyramid() {
     cubes = [];
     let lvl = levelsData[currentLevel];
-    // TIGHTER SPACING (cubeW * 2.1 instead of 2.4) to fit the screen
-    for (let r = 0; r < lvl; r++) {
+    for (let i = lvl - 1; i >= 0; i--) {
       let row = [];
-      for (let c = 0; c <= r; c++) {
-        let x = sketch.width / 2 + (c - r / 2) * (cubeW * 2.1);
-        let y = 180 + r * (cubeW * 1.2);
-        row.push({ x, y, compiled: false, showText: 0, activeMsg: "" });
+      for (let j = 0; j <= i; j++) {
+        // Narrower spacing (cubeSize * 1.8) to fit iPhone screen
+        let x = sketch.width / 2 + (j - i / 2) * (cubeSize * 1.8);
+        let y = 250 + (lvl - i) * (cubeSize * 0.75);
+        row.push({ x, y, compiled: false, pop: false });
       }
       cubes.push(row);
     }
     azul = { x: cubes[0][0].x, y: cubes[0][0].y };
-    azulTarget = { x: cubes[0][0].x, y: cubes[0][0].y };
+    azulTarget = { ...azul };
   }
 }, 'p5-container');
 </script>
