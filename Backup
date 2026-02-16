@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#00ffff">
+  <link rel="apple-touch-icon" href="clean-poster1.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Q-Code Isometric Pyramid</title>
+<style>
+  :root {
+    --neon-pink: #ff00ff;
+    --neon-cyan: #00ffff;
+  }
+  body {
+    margin: 0;
+    background: url('clean-poster.PNG') no-repeat center center fixed;
+    background-size: cover;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+  }
+  #start-overlay, #reward-screen {
+    position: fixed;
+    top:0; left:0; width:100%; height:100%;
+    display:flex; align-items:center; justify-content:center;
+    background: rgba(0,0,0,0.85);
+    color: var(--neon-pink);
+    z-index: 20000;
+    flex-direction: column;
+    text-align: center;
+    cursor: pointer;
+  }
+  #start-overlay h1 { font-size: 2.5rem; margin-bottom: 20px; }
+  #start-overlay p { font-size: 1.5rem; }
+  #reward-screen img { width: 150px; margin-bottom: 10px; }
+  #hud-controls {
+    position: fixed;
+    top: 10px;
+    right: 20px;
+    display: flex;
+    gap: 15px;
+    z-index: 10000;
+  }
+  .hud-btn {
+    font-size: 2rem;
+    cursor: pointer;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 10px var(--neon-cyan);
+    transition: transform 0.1s;
+  }
+  .hud-btn:active { transform: scale(0.9); }
+  #score-display {
+    position: fixed;
+    top:10px;
+    left:20px;
+    font-size:2rem;
+    color: var(--neon-cyan);
+    text-shadow:0 0 10px var(--neon-cyan);
+    z-index:10000;
+  }
+</style>
+</head>
+<body>
+
+<div id="start-overlay">
+  <h1 style="margin-top: 20px;">Q-CODE PYRAMID</h1>
+  
+  <div style="width: 200px; height: 355px; border: 2px solid var(--neon-cyan); box-shadow: 0 0 20px rgba(0,255,255,0.4); margin: 20px 0; overflow: hidden; border-radius: 12px; background: #000;">
+    <iframe 
+      width="200" 
+      height="355" 
+      src="https://www.youtube.com/embed/CJBfSyaHpFI?autoplay=1&mute=1&loop=1&playlist=CJBfSyaHpFI&controls=0&modestbranding=1" 
+      frameborder="0" 
+      allow="autoplay; encrypted-media" 
+      style="pointer-events: none;"> </iframe>
+  </div>
+
+  <p style="margin-bottom: 30px;">TAP ANYWHERE TO START</p>
+</div>
+
+<div id="score-display">Score: 0</div>
+
+<div id="hud-controls">
+  <span class="hud-btn" id="home-btn">🏡</span>
+  <span class="hud-btn" id="mute-btn">🔇</span>
+  <span class="hud-btn" id="play-pause-btn" onclick="togglePlay()">⏯️</span> 
+</div>
+
+
+<div id="reward-screen" style="display:none">
+  <h2>LEVEL COMPLETE!</h2>
+  <img id="mochkil-img" src="mochkil-idle.png" alt="Mochkil">
+  <p>All cubes compiled. You win!</p>
+  <button id="next-btn" style="padding:10px 20px; background:var(--neon-cyan); border:none; color:#000; font-weight:bold;">Next Level</button>
+</div>
+
+<div id="p5-container"></div>
+
+<audio id="bgMusic" src="a-sunny-day.mp3" loop></audio>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
+<script>
+// =====================
+// GLOBAL VARIABLES
+// =====================
+let levelsData = [4, 5, 6, 7, 8]; // Progression!
+let currentLevel = 0;
+let cubes = [];
+let cubeSize = 50;
+let azul, azulTarget, popFrames = 0;
+let azulCurses = ["@!#?@", "??!!#", "#$%@!", "G-L-I-T-C-H"];
+let mochkilSlang = ["Bussin!", "No Cap.", "Bet.", "W Hacker.", "Real!"];
+let score = 0;
+let gameStarted = false;
+let isPaused = false;
+let detectionAlert = false;
+let badImg, azulImg;
+let badGuy = { row:0, col:0, x:0, y:0 };
+let badMoveTimer = 0;
+let badStartDelay = 120;
+const bgMusic = document.getElementById('bgMusic');
+
+// =====================
+// SYSTEM FUNCTIONS
+// =====================
+function globalSetupPyramid(levelIndex, sketch) {
+  cubes = [];
+  let lvl = levelsData[levelIndex];
+  for (let i = lvl - 1; i >= 0; i--) {
+    let row = [];
+    for (let j = 0; j <= i; j++) {
+      let x = sketch.width / 2 + (j - i / 2) * cubeSize;
+      let y = sketch.height - (lvl - i) * (cubeSize * 0.75);
+      row.push({ x, y, compiled: false, pop: false });
+    }
+    cubes.push(row);
+  }
+  score = 0;
+  document.getElementById('score-display').textContent = 'Score: 0';
+  
+  // Reset Azul to top
+  azul = { x: cubes[0][0].x, y: cubes[0][0].y, yOffset: 0, row: 0, col: 0 };
+  azulTarget = { ...azul };
+  
+  // Reset Bot to bottom
+  badGuy.row = cubes.length - 1; 
+  badGuy.col = 0;
+  badGuy.x = -cubeSize;
+  badGuy.y = cubes[badGuy.row][0].y;
+  badMoveTimer = 0;
+  badStartDelay = 120;
+}
+
+// =====================
+// P5 SKETCH
+// =====================
+new p5((sketch) => {
+  sketch.preload = function() {
+    azulImg = sketch.loadImage('azul-tactical.png');
+    badImg = sketch.loadImage('bad-guy.png');
+  };
+
+  sketch.setup = function() {
+    const canvas = sketch.createCanvas(sketch.windowWidth, sketch.windowHeight);
+    canvas.parent('p5-container');
+    globalSetupPyramid(currentLevel, sketch);
+  };
+
+  // BUTTONS (Inside P5 to access 'sketch')
+  document.getElementById('start-overlay').onclick = () => {
+    bgMusic.play().catch(() => {});
+    document.getElementById('start-overlay').style.display = 'none';
+    gameStarted = true;
+  };
+
+  document.getElementById('next-btn').onclick = () => {
+    document.getElementById('reward-screen').style.display = 'none';
+    currentLevel = (currentLevel + 1) % levelsData.length;
+    globalSetupPyramid(currentLevel, sketch);
+    gameStarted = true;
+  };
+
+  sketch.draw = function() {
+    if (isPaused || !gameStarted) return;
+    sketch.clear();
+
+    // 1. Draw Cubes
+    for (let i = cubes.length - 1; i >= 0; i--) {
+      for (let j = 0; j < cubes[i].length; j++) {
+        drawIsoCube(cubes[i][j], sketch);
+      }
+    }
+
+    // 2. Azul Movement
+    azul.x += (azulTarget.x - azul.x) * 0.2;
+    azul.y += (azulTarget.y - azul.y) * 0.2;
+    sketch.image(azulImg, azul.x, azul.y - (cubeSize * 0.58), cubeSize, cubeSize);
+
+    // 3. Bad Guy Slide-In
+    if (badStartDelay > 0) {
+      badStartDelay--;
+      let targetPos = cubes[badGuy.row][badGuy.col];
+      badGuy.x += (targetPos.x - badGuy.x) * 0.1;
+      badGuy.y = targetPos.y;
+      sketch.image(badImg, badGuy.x, badGuy.y - cubeSize * 0.55, cubeSize, cubeSize);
+      return;
+    }
+
+    // 4. Bad Guy AI
+    let d = sketch.dist(azul.x, azul.y, badGuy.x, badGuy.y);
+    detectionAlert = (d < 180 && azulTarget.x >= badGuy.x);
+    badMoveTimer++;
+    if (badMoveTimer > 75) {
+      badMoveTimer = 0;
+      if (Math.random() > 0.3) {
+        if (detectionAlert) {
+          if (badGuy.row < azul.row) badGuy.row++; else if (badGuy.row > azul.row) badGuy.row--;
+          if (badGuy.col < azul.col) badGuy.col++; else if (badGuy.col > azul.col) badGuy.col--;
+        } else {
+          badGuy.col = sketch.constrain(badGuy.col + sketch.random([-1, 1]), 0, cubes[badGuy.row].length - 1);
+        }
+        let pos = cubes[badGuy.row][badGuy.col];
+        badGuy.x = pos.x; badGuy.y = pos.y;
+      }
+    }
+
+    // 5. Collision
+    if (badGuy.row === azul.row && badGuy.col === azul.col) {
+      alert("Azul was caught! 🌶️💥");
+      globalSetupPyramid(currentLevel, sketch);
+    }
+
+    sketch.image(badImg, badGuy.x, badGuy.y - cubeSize * 0.55, cubeSize, cubeSize);
+    if (detectionAlert) {
+      sketch.fill(255, 0, 0); sketch.textSize(40);
+      sketch.text("!", badGuy.x, badGuy.y - 110);
+    }
+  };
+
+  sketch.mousePressed = function() {
+    if (!gameStarted || isPaused) return;
+    for (let i = 0; i < cubes.length; i++) {
+      for (let j = 0; j < cubes[i].length; j++) {
+        let cube = cubes[i][j];
+        if (sketch.mouseX > cube.x - cubeSize / 2 && sketch.mouseX < cube.x + cubeSize / 2 &&
+          sketch.mouseY > cube.y - cubeSize / 4 && sketch.mouseY < cube.y + cubeSize / 4) {
+          if (!cube.compiled) score++;
+          cube.compiled = true;
+          azulTarget.x = cube.x; azulTarget.y = cube.y;
+          azul.row = i; azul.col = j;
+          document.getElementById('score-display').textContent = 'Score: ' + score;
+
+          // WIN CHECK
+          let allCompiled = cubes.every(row => row.every(c => c.compiled));
+          if (allCompiled) {
+            document.getElementById('reward-screen').style.display = 'flex';
+            gameStarted = false;
+          }
+        }
+      }
+    }
+  };
+
+  function drawIsoCube(cube, s) {
+    let topColor = cube.compiled ? s.color(0, 255, 255) : s.color(255, 0, 85);
+    s.push(); s.translate(cube.x, cube.y); s.noStroke();
+    s.fill(topColor); s.quad(0, -cubeSize / 2, cubeSize / 2, -cubeSize / 4, 0, 0, -cubeSize / 2, -cubeSize / 4);
+    s.fill(s.color(cube.compiled ? 0 : 150, 0, 50)); s.quad(-cubeSize / 2, -cubeSize / 4, 0, 0, 0, cubeSize / 2, -cubeSize / 2, cubeSize / 4);
+    s.fill(s.color(cube.compiled ? 0 : 200, 0, 70)); s.quad(0, 0, cubeSize / 2, -cubeSize / 4, cubeSize / 2, cubeSize / 4, 0, cubeSize / 2);
+    s.pop();
+  }
+}, 'p5-container');
+
+function togglePlay() {
+  isPaused = !isPaused;
+  if (isPaused) bgMusic.pause(); else bgMusic.play();
+}
+</script>
+
+</body>
+</html>
