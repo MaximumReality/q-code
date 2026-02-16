@@ -165,43 +165,58 @@ new p5((sketch) => {
   }
 
   sketch.setup = function(){
-    const canvas = sketch.createCanvas(sketch.windowWidth, sketch.windowHeight);
-    canvas.parent('p5-container');
-    sketch.noStroke();
-    setupPyramid(currentLevel);
+  const canvas = sketch.createCanvas(sketch.windowWidth, sketch.windowHeight);
+  canvas.parent('p5-container');
+  sketch.noStroke();
+  setupPyramid(currentLevel);
 
-    // Initialize Azul
-    azul = { x:cubes[0][0].x, y:cubes[0][0].y, yOffset:0, row:0, col:0 };
-    azulTarget = { ...azul };
+  // Initialize Azul (always top-left)
+  azul = { x:cubes[0][0].x, y:cubes[0][0].y, yOffset:0, row:0, col:0 };
+  azulTarget = { ...azul };
 
-    // Initialize Bad Guy left of Azul
-    badGuy.row = 0;
-    badGuy.col = 0;
-    badGuy.x = cubes[0][0].x - cubeSize; // start left
-    badGuy.y = cubes[0][0].y;
-    badMoveTimer = 0;
-    badStartDelay = 120; // ~2 seconds delay
+  // Initialize Bad Guy offscreen left, same row as random cube below Azul
+  let badRow = Math.floor(sketch.random(1, cubes.length)); // row 1 or lower
+  let badCol = Math.floor(sketch.random(0, cubes[badRow].length));
+  badGuy.row = badRow;
+  badGuy.col = badCol;
+  badGuy.x = -cubeSize; // start offscreen left
+  badGuy.y = cubes[badRow][badCol].y;
+  badMoveTimer = 0;
+  badStartDelay = 60; // frames before he starts moving in
+}
+
+  sketch.draw = function() {
+  if (isPaused) {
+    // pause overlay
+    sketch.fill(0,0,0,100);
+    sketch.rect(0,0,sketch.width,sketch.height);
+    sketch.fill(255);
+    sketch.textAlign(sketch.CENTER);
+    sketch.textSize(32);
+    sketch.text("SYSTEM PAUSED", sketch.width/2, sketch.height/2);
+    return;
   }
 
-  sketch.draw = function(){
-    if(isPaused){
-      sketch.fill(0,0,0,100);
-      sketch.rect(0,0,sketch.width, sketch.height);
-      sketch.fill(255);
-      sketch.textAlign(sketch.CENTER);
-      sketch.textSize(32);
-      sketch.text("SYSTEM PAUSED", sketch.width/2, sketch.height/2);
-      return;
-    }
+  sketch.clear();
 
-    sketch.clear();
+  // === BAD GUY SLIDE-IN ===
+  if(badStartDelay > 0){
+    badStartDelay--; // countdown
+    let targetPos = cubes[badGuy.row][badGuy.col];
+    badGuy.x += (targetPos.x - badGuy.x) * 0.1; // smooth approach
+    badGuy.y = targetPos.y;
 
-    // Draw cubes
-    for(let i=cubes.length-1;i>=0;i--){
-      for(let j=0;j<cubes[i].length;j++){
-        drawIsoCube(cubes[i][j], sketch);
-      }
+    sketch.imageMode(sketch.CENTER);
+    sketch.image(badImg, badGuy.x, badGuy.y - cubeSize*0.55, cubeSize, cubeSize);
+    return; // skip the rest until slide-in finishes
+  }
+
+  // --- Draw cubes ---
+  for(let i=cubes.length-1;i>=0;i--){
+    for(let j=0;j<cubes[i].length;j++){
+      drawIsoCube(cubes[i][j], sketch);
     }
+  }
 
     // === Azul sprite ===
     azul.x += (azulTarget.x - azul.x) * 0.2;
