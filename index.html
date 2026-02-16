@@ -133,10 +133,21 @@ document.getElementById('mute-btn').onclick = ()=>{
 };
 document.getElementById('next-btn').onclick = ()=>{
   document.getElementById('reward-screen').style.display='none';
-  gameWon = false;
-  setupPyramid(currentLevel);
+  
+  // Advance to next level data, or loop back to 0 if at the end
+  currentLevel = (currentLevel + 1) % levelsData.length; 
+  
+  setupPyramid(currentLevel); // This now handles the reset
+  
+  // Re-sync Azul and Bot
+  azul.row = 0; azul.col = 0;
+  azul.x = cubes[0][0].x; azul.y = cubes[0][0].y;
+  azulTarget = { ...azul };
+  
+  resetBadGuy(); 
   gameStarted = true;
 };
+
 document.getElementById('start-overlay').addEventListener('click', ()=>{
   bgMusic.play().catch(()=>{});
   document.getElementById('start-overlay').style.display='none';
