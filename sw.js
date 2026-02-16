@@ -1,4 +1,4 @@
-const CACHE_NAME = 'qcode-pyramid-v1.4'; // Bump this when you change assets!
+const CACHE_NAME = 'qcode-pyramid-v1.5'; // Bump this when you change assets!
 const ASSETS = [
   './',
   './index.html',
