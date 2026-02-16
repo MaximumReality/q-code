@@ -54,9 +54,9 @@ You can play **Q-Code Pyramid** directly in a modern web browser or install it a
 - **Azul:** `azul-tactical.png`  
 - **Sriracha-Bot 9000:** `bad-guy.png`  
 - **Mochkil:** `mochkil-idle.png`, `mochkil-yes.png`  
-- **Background:** `clean-poster1.png`  
+- **Background:** `clean-poster.png`  
 - **Music:** `a-sunny-day.mp3`  
-
+- **Favicon:** `clean-poster1.png`
 All assets are included in the repository and cached for offline play.
 
 ---
