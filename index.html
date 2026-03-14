@@ -91,7 +91,10 @@ function globalSetupPyramid(levelIndex, sketch) {
   }
   score = 0;
   document.getElementById('score-display').textContent = 'Score: 0';
-  azul = { x: cubes[0][0].x, y: cubes[0][0].y, row: 0, col: 0 };
+  let bottomRow = cubes.length - 1;
+let midCol = Math.floor(cubes[bottomRow].length / 2);
+azul = { x: cubes[bottomRow][midCol].x, y: cubes[bottomRow][midCol].y, row: bottomRow, col: midCol };
+
   azulTarget = { ...azul };
   resetBadGuy();
 }
