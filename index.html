@@ -101,13 +101,14 @@ azulTarget = { x: azul.x, y: azul.y };
 
 function resetBadGuy() {
   let diff = difficultyConfig[currentLevel];
-  badGuy.row = cubes.length - 1;
+  badGuy.row = 0;
   badGuy.col = 0;
-  badGuy.x = -cubeSize;
-  badGuy.y = cubes[badGuy.row][0].y;
+  badGuy.x = cubes[0][0].x;
+  badGuy.y = cubes[0][0].y;
   badMoveTimer = 0;
   badStartDelay = diff.badStartDelay;
 }
+
 
 
 new p5((sketch) => {
