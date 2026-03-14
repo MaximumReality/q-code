@@ -94,8 +94,8 @@ function globalSetupPyramid(levelIndex, sketch) {
   let bottomRow = cubes.length - 1;
 let midCol = Math.floor(cubes[bottomRow].length / 2);
 azul = { x: cubes[bottomRow][midCol].x, y: cubes[bottomRow][midCol].y, row: bottomRow, col: midCol };
+azulTarget = { x: azul.x, y: azul.y };
 
-  azulTarget = { ...azul };
   resetBadGuy();
 }
 
