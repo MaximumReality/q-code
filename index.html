@@ -50,6 +50,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
 <script>
 let levelsData = [4, 5, 6, 7, 8];
+
+// Difficulty scales with pyramid size
+// badStartDelay: higher = more time before he moves
+// moveInterval: higher = slower (more frames between moves)  
+// chaseChance: 0.0–1.0, higher = smarter/more aggressive
+let difficultyConfig = [
+  { badStartDelay: 180, moveInterval: 120, chaseChance: 0.3 }, // Level 1 (4 cubes) - chill
+  { badStartDelay: 150, moveInterval: 100, chaseChance: 0.45 }, // Level 2 (5 cubes) - warming up
+  { badStartDelay: 120, moveInterval: 80,  chaseChance: 0.6 },  // Level 3 (6 cubes) - medium
+  { badStartDelay: 90,  moveInterval: 60,  chaseChance: 0.75 }, // Level 4 (7 cubes) - spicy
+  { badStartDelay: 60,  moveInterval: 40,  chaseChance: 0.88 }, // Level 5 (8 cubes) - 🌶️🌶️🌶️
+];
+
 let currentLevel = 0;
 let cubes = [];
 let cubeSize = 50;
@@ -84,13 +97,15 @@ function globalSetupPyramid(levelIndex, sketch) {
 }
 
 function resetBadGuy() {
-  badGuy.row = cubes.length - 1; 
+  let diff = difficultyConfig[currentLevel];
+  badGuy.row = cubes.length - 1;
   badGuy.col = 0;
   badGuy.x = -cubeSize;
   badGuy.y = cubes[badGuy.row][0].y;
   badMoveTimer = 0;
-  badStartDelay = 120;
+  badStartDelay = diff.badStartDelay;
 }
+
 
 new p5((sketch) => {
   sketch.preload = function() {
@@ -155,26 +170,31 @@ new p5((sketch) => {
     sketch.image(azulImg, azul.x, azul.y - (cubeSize * 0.58), cubeSize, cubeSize);
 
     if (badStartDelay > 0) {
-      badStartDelay--;
-      let targetPos = cubes[badGuy.row][badGuy.col];
-      badGuy.x += (targetPos.x - badGuy.x) * 0.1;
-      badGuy.y = targetPos.y;
-    } else {
-      badMoveTimer++;
-      if (badMoveTimer > 75) {
-        badMoveTimer = 0;
-        if (Math.random() > 0.3) {
-          if (badGuy.row < azul.row) badGuy.row++; else if (badGuy.row > azul.row) badGuy.row--;
-          if (badGuy.col < azul.col) badGuy.col++; else if (badGuy.col > azul.col) badGuy.col--;
-          let pos = cubes[badGuy.row][badGuy.col];
-          badGuy.x = pos.x; badGuy.y = pos.y;
-        }
-      }
-      if (badGuy.row === azul.row && badGuy.col === azul.col) {
-        alert("Azul was caught! 🌶️💥");
-        globalSetupPyramid(currentLevel, sketch);
-      }
+  badStartDelay--;
+  let targetPos = cubes[badGuy.row][badGuy.col];
+  badGuy.x += (targetPos.x - badGuy.x) * 0.1;
+  badGuy.y = targetPos.y;
+} else {
+  badMoveTimer++;
+  let diff = difficultyConfig[currentLevel];
+  if (badMoveTimer > diff.moveInterval) {
+    badMoveTimer = 0;
+    if (Math.random() < diff.chaseChance) {
+      if (badGuy.row < azul.row) badGuy.row++;
+      else if (badGuy.row > azul.row) badGuy.row--;
+      if (badGuy.col < azul.col) badGuy.col++;
+      else if (badGuy.col > azul.col) badGuy.col--;
+      let pos = cubes[badGuy.row][badGuy.col];
+      badGuy.x = pos.x;
+      badGuy.y = pos.y;
     }
+  }
+  if (badGuy.row === azul.row && badGuy.col === azul.col) {
+    alert("Azul was caught! 🌶️💥");
+    globalSetupPyramid(currentLevel, sketch);
+  }
+}
+
     sketch.image(badImg, badGuy.x, badGuy.y - cubeSize * 0.55, cubeSize, cubeSize);
   };
 
