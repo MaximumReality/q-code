@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SHADOWS OF THE Q-CODE</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap');
+
+  :root {
+    --void: #000408;
+    --deep: #010b18;
+    --blue-sector: #0a1628;
+    --cyan: #00f5ff;
+    --cyan-dim: #00a8b5;
+    --violet: #7b2fff;
+    --violet-dim: #4a1a99;
+    --static: #1a3a5c;
+    --snow: #4fc3f7;
+    --danger: #ff3366;
+    --gold: #ffd700;
+    --text: #8ecfee;
+    --text-dim: #3a6680;
+    --glow-cyan: 0 0 8px #00f5ff, 0 0 20px #00a8b580;
+    --glow-violet: 0 0 8px #7b2fff, 0 0 20px #4a1a9980;
+    --glow-danger: 0 0 8px #ff3366, 0 0 20px #ff336660;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--void);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* ─── SCAN LINES OVERLAY ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,245,255,0.015) 2px,
+      rgba(0,245,255,0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+    animation: scanShift 8s linear infinite;
+  }
+
+  @keyframes scanShift {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 200px; }
+  }
+
+  /* ─── GLITCH OVERLAY ─── */
+  #glitch-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9998;
+    opacity: 0;
+    background: linear-gradient(90deg, transparent 40%, rgba(0,245,255,0.06) 50%, transparent 60%);
+  }
+
+  #glitch-overlay.active {
+    animation: glitchFlash 0.15s steps(2) forwards;
+  }
+
+  @keyframes glitchFlash {
+    0% { opacity: 1; transform: translateX(-3px); }
+    50% { opacity: 0.5; transform: translateX(3px); }
+    100% { opacity: 0; transform: translateX(0); }
+  }
+
+  /* ─── STATIC SNOW PARTICLES ─── */
+  #snow-canvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0.4;
+  }
+
+  /* ─── HEADER / HUD ─── */
+  #hud {
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 10px 14px 6px;
+    background: linear-gradient(180deg, #000c1a 0%, transparent 100%);
+    border-bottom: 1px solid rgba(0,245,255,0.15);
+    z-index: 100;
+    position: relative;
+  }
+
+  #hud-left { display: flex; flex-direction: column; gap: 3px; }
+  #hud-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+    text-transform: uppercase;
+  }
+  #hud-subtitle {
+    font-size: 8px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+  }
+
+  #hud-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  #weather-badge {
+    font-size: 7px;
+    letter-spacing: 1.5px;
+    color: var(--violet);
+    text-shadow: var(--glow-violet);
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  #hud-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+  }
+
+  .stat-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 8px;
+  }
+
+  .stat-label { color: var(--text-dim); }
+  .stat-bar {
+    width: 50px;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(0,245,255,0.2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .stat-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+  .stat-fill.hp { background: linear-gradient(90deg, var(--cyan-dim), var(--cyan)); }
+  .stat-fill.energy { background: linear-gradient(90deg, var(--violet-dim), var(--violet)); }
+  .stat-fill.hp.low { background: linear-gradient(90deg, #aa0033, var(--danger)); }
+
+  /* ─── MAIN GAME AREA ─── */
+  #game-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    z-index: 20;
+  }
+
+  /* ─── SCENE DISPLAY ─── */
+  #scene-panel {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 14px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #scene-panel::-webkit-scrollbar { width: 2px; }
+  #scene-panel::-webkit-scrollbar-track { background: transparent; }
+  #scene-panel::-webkit-scrollbar-thumb { background: var(--violet-dim); }
+
+  .scene-block {
+    border-left: 2px solid var(--cyan-dim);
+    padding: 10px 12px;
+    background: rgba(0,245,255,0.03);
+    border-radius: 0 6px 6px 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+    animation: fadeSlide 0.4s ease forwards;
+    opacity: 0;
+  }
+
+  .scene-block.azul {
+    border-left-color: var(--violet);
+    background: rgba(123,47,255,0.06);
+    color: #c9aaff;
+  }
+
+  .scene-block.system {
+    border-left-color: var(--text-dim);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+
+  .scene-block.danger-msg {
+    border-left-color: var(--danger);
+    background: rgba(255,51,102,0.06);
+    color: #ffaacc;
+  }
+
+  .scene-block.success-msg {
+    border-left-color: var(--gold);
+    background: rgba(255,215,0,0.04);
+    color: #ffe680;
+  }
+
+  .scene-label {
+    font-size: 8px;
+    letter-spacing: 2px;
+    margin-bottom: 5px;
+    opacity: 0.6;
+    text-transform: uppercase;
+  }
+
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateX(-6px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ─── CHOICES / ACTIONS ─── */
+  #choices {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: linear-gradient(0deg, #000c1a 80%, transparent 100%);
+    z-index: 50;
+  }
+
+  .choice-btn {
+    background: rgba(0,245,255,0.04);
+    border: 1px solid rgba(0,245,255,0.25);
+    color: var(--cyan);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    padding: 10px 14px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .choice-btn::before {
+    content: '▶';
+    color: var(--violet);
+    margin-right: 8px;
+    font-size: 9px;
+  }
+
+  .choice-btn:active, .choice-btn:hover {
+    background: rgba(0,245,255,0.12);
+    border-color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+    transform: translateX(3px);
+  }
+
+  .choice-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ─── INPUT AREA ─── */
+  #input-area {
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px 12px;
+    background: #000c1a;
+    border-top: 1px solid rgba(0,245,255,0.1);
+    z-index: 50;
+  }
+
+  #cmd-prefix {
+    color: var(--violet);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    text-shadow: var(--glow-violet);
+  }
+
+  #player-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--cyan);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    caret-color: var(--cyan);
+    letter-spacing: 0.5px;
+  }
+
+  #player-input::placeholder { color: var(--text-dim); }
+
+  #send-btn {
+    background: transparent;
+    border: 1px solid var(--violet-dim);
+    color: var(--violet);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #send-btn:active, #send-btn:hover {
+    background: rgba(123,47,255,0.2);
+    border-color: var(--violet);
+    text-shadow: var(--glow-violet);
+  }
+
+  /* ─── LOADING STATE ─── */
+  #loading-indicator {
+    display: none;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--violet);
+    letter-spacing: 2px;
+    text-shadow: var(--glow-violet);
+  }
+
+  #loading-indicator.active {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .loading-dots span {
+    animation: blink 1.2s infinite;
+    font-size: 14px;
+  }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes blink {
+    0%, 80%, 100% { opacity: 0.2; }
+    40% { opacity: 1; }
+  }
+
+  /* ─── INVENTORY / STATUS PANEL ─── */
+  #status-strip {
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+    padding: 6px 12px;
+    border-top: 1px solid rgba(0,245,255,0.08);
+    overflow-x: auto;
+    background: rgba(0,0,0,0.5);
+    z-index: 50;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  #status-strip::-webkit-scrollbar { display: none; }
+
+  .status-tag {
+    flex-shrink: 0;
+    font-size: 8px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  .status-tag.active {
+    background: rgba(0,245,255,0.1);
+    border: 1px solid rgba(0,245,255,0.3);
+    color: var(--cyan);
+  }
+
+  .status-tag.warning {
+    background: rgba(255,51,102,0.1);
+    border: 1px solid rgba(255,51,102,0.3);
+    color: var(--danger);
+    animation: dangerPulse 2s ease-in-out infinite;
+  }
+
+  .status-tag.item {
+    background: rgba(123,47,255,0.1);
+    border: 1px solid rgba(123,47,255,0.3);
+    color: #c9aaff;
+  }
+
+  @keyframes dangerPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* ─── TITLE SCREEN ─── */
+  #title-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--void);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    gap: 20px;
+    padding: 30px;
+    text-align: center;
+  }
+
+  #title-screen.hidden {
+    animation: titleFade 0.6s ease forwards;
+    pointer-events: none;
+  }
+
+  @keyframes titleFade {
+    from { opacity: 1; }
+    to { opacity: 0; pointer-events: none; }
+  }
+
+  .title-classified {
+    font-size: 8px;
+    letter-spacing: 6px;
+    color: var(--danger);
+    text-shadow: var(--glow-danger);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .title-main {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(22px, 7vw, 40px);
+    font-weight: 900;
+    color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+    letter-spacing: 4px;
+    line-height: 1.2;
+  }
+
+  .title-sub {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(14px, 4vw, 20px);
+    color: var(--violet);
+    text-shadow: var(--glow-violet);
+    letter-spacing: 6px;
+  }
+
+  .title-divider {
+    width: 200px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan-dim), transparent);
+  }
+
+  .title-meta {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    line-height: 2;
+  }
+
+  .title-meta span { color: var(--violet); }
+
+  #start-btn {
+    margin-top: 10px;
+    background: transparent;
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    padding: 14px 36px;
+    letter-spacing: 4px;
+    cursor: pointer;
+    border-radius: 2px;
+    text-shadow: var(--glow-cyan);
+    box-shadow: var(--glow-cyan), inset 0 0 20px rgba(0,245,255,0.05);
+    transition: all 0.3s;
+    animation: startPulse 2s ease-in-out infinite;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @keyframes startPulse {
+    0%, 100% { box-shadow: var(--glow-cyan), inset 0 0 20px rgba(0,245,255,0.05); }
+    50% { box-shadow: 0 0 20px #00f5ff, 0 0 60px #00a8b540, inset 0 0 30px rgba(0,245,255,0.1); }
+  }
+
+  #start-btn:active {
+    transform: scale(0.97);
+    background: rgba(0,245,255,0.1);
+  }
+
+  /* ─── PYRAMID DECORATION ─── */
+  .pyramid-art {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--violet-dim);
+    text-shadow: var(--glow-violet);
+    line-height: 1.4;
+    opacity: 0.7;
+  }
+
+  /* ─── ENTITY ENCOUNTER BANNER ─── */
+  #encounter-banner {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,4,8,0.95);
+    border: 1px solid var(--danger);
+    box-shadow: var(--glow-danger);
+    padding: 16px 24px;
+    z-index: 5000;
+    text-align: center;
+    min-width: 260px;
+    border-radius: 4px;
+    animation: encounterAppear 0.3s ease;
+  }
+
+  @keyframes encounterAppear {
+    from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+    to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  }
+
+  #encounter-banner.active { display: block; }
+
+  .encounter-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--danger);
+    text-shadow: var(--glow-danger);
+    margin-bottom: 6px;
+  }
+
+  .encounter-name {
+    font-size: 16px;
+    color: #ffaacc;
+    margin-bottom: 12px;
+  }
+
+  .encounter-btns {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .encounter-btn {
+    background: transparent;
+    border: 1px solid;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 7px 14px;
+    cursor: pointer;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .encounter-btn.fight { border-color: var(--danger); color: var(--danger); }
+  .encounter-btn.hack { border-color: var(--violet); color: var(--violet); }
+  .encounter-btn.run { border-color: var(--text-dim); color: var(--text-dim); }
+
+  .encounter-btn:active {
+    transform: scale(0.96);
+    background: rgba(255,255,255,0.06);
+  }
+  /* ─── GAME OVER OVERLAY ─── */
+#game-over {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 20000;
+  text-align: center;
+  border: 2px solid var(--danger);
+}
+
+#game-over.active { display: flex; animation: glitchFlash 0.2s infinite; }
+
+.death-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 32px;
+  color: var(--danger);
+  text-shadow: var(--glow-danger);
+  margin-bottom: 20px;
+}
+
+.death-msg {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 30px;
+  letter-spacing: 2px;
+}
+
+</style>
+</head>
+<body>
+
+<!-- Snow Canvas -->
+<canvas id="snow-canvas"></canvas>
+
+<!-- Glitch Overlay -->
+<div id="glitch-overlay"></div>
+
+<!-- Title Screen -->
+<div id="title-screen">
+  <div class="title-classified">PROJECT CLASSIFIED: FOLIO 7-Q</div>
+
+  <div class="pyramid-art">
+      ◆<br>
+     ◆◆◆<br>
+    ◆◆◆◆◆<br>
+   ◆◆◆◆◆◆◆<br>
+  ◆◆◆◆◆◆◆◆◆
+  </div>
+
+  <div class="title-main">SHADOWS OF<br>THE Q-CODE</div>
+  <div class="title-sub">ID: 404-AZUL</div>
+
+  <div class="title-divider"></div>
+
+  <div class="title-meta">
+    SECTOR: <span>BLUE SECTOR</span><br>
+    WEATHER: <span>CHROMATIC DATA-STORM</span><br>
+    STABILITY: <span style="color:var(--danger)">CRITICAL</span>
+  </div>
+
+  <button id="start-btn" onclick="startGame()">INITIALIZE</button>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="hud-left">
+    <div id="hud-title">Q-CODE</div>
+    <div id="hud-subtitle">BLUE SECTOR</div>
+  </div>
+  <div id="hud-center">
+    <div id="weather-badge">⚡ DATA-STORM ACTIVE</div>
+  </div>
+  <div id="hud-right">
+    <div class="stat-row">
+      <span class="stat-label">HP</span>
+      <div class="stat-bar"><div class="stat-fill hp" id="hp-bar" style="width:85%"></div></div>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">PWR</span>
+      <div class="stat-bar"><div class="stat-fill energy" id="energy-bar" style="width:70%"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Game Area -->
+<div id="game-area">
+  <!-- Scene log -->
+  <div id="scene-panel"></div>
+
+  <!-- Loading indicator -->
+  <div id="loading-indicator">
+    <span>AZUL PROCESSING</span>
+    <div class="loading-dots"><span>◆</span><span>◆</span><span>◆</span></div>
+  </div>
+
+  <!-- Choice buttons (shown when AI returns structured choices) -->
+  <div id="choices"></div>
+
+  <!-- Status strip -->
+  <div id="status-strip">
+    <div class="status-tag warning">⚡ DATA-STORM</div>
+    <div class="status-tag active" id="location-tag">SECTOR ENTRANCE</div>
+    <div class="status-tag item" id="item-tag">AZUL SCANNER</div>
+  </div>
+
+  <!-- Input area -->
+  <div id="input-area">
+    <div id="cmd-prefix">AZUL&gt;</div>
+    <input type="text" id="player-input" placeholder="issue command or speak freely..." maxlength="200" autocomplete="off" autocorrect="off" spellcheck="false">
+    <button id="send-btn" onclick="sendMessage()">SEND</button>
+  </div>
+</div>
+
+<!-- Encounter Banner -->
+<div id="encounter-banner" id="encounter-banner">
+  <div class="encounter-title">⚠ ENTITY DETECTED</div>
+  <div class="encounter-name" id="encounter-name">STATIC PHANTOM</div>
+  <div class="encounter-btns">
+    <button class="encounter-btn fight" onclick="handleEncounter('fight')">FIGHT</button>
+    <button class="encounter-btn hack" onclick="handleEncounter('hack')">HACK</button>
+    <button class="encounter-btn run" onclick="handleEncounter('run')">RUN</button>
+  </div>
+</div>
+
+<script>
+// ─── STATIC SNOW EFFECT ───
+const snowCanvas = document.getElementById('snow-canvas');
+const ctx = snowCanvas.getContext('2d');
+let particles = [];
+
+function resizeSnow() {
+  snowCanvas.width = window.innerWidth;
+  snowCanvas.height = window.innerHeight;
+}
+
+function initSnow() {
+  particles = [];
+  for (let i = 0; i < 80; i++) {
+    particles.push({
+      x: Math.random() * snowCanvas.width,
+      y: Math.random() * snowCanvas.height,
+      size: Math.random() * 1.5 + 0.3,
+      speedY: Math.random() * 0.8 + 0.2,
+      speedX: (Math.random() - 0.5) * 0.4,
+      opacity: Math.random() * 0.6 + 0.1,
+      color: Math.random() > 0.7 ? '#7b2fff' : '#4fc3f7'
+    });
+  }
+}
+
+function animateSnow() {
+  ctx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
+  particles.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.opacity;
+    ctx.fill();
+    p.y += p.speedY;
+    p.x += p.speedX;
+    if (p.y > snowCanvas.height) { p.y = -2; p.x = Math.random() * snowCanvas.width; }
+    if (p.x > snowCanvas.width) p.x = 0;
+    if (p.x < 0) p.x = snowCanvas.width;
+  });
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(animateSnow);
+}
+
+resizeSnow(); initSnow(); animateSnow();
+window.addEventListener('resize', () => { resizeSnow(); initSnow(); });
+
+// ─── RANDOM GLITCH ───
+function triggerGlitch() {
+  const el = document.getElementById('glitch-overlay');
+  el.classList.remove('active');
+  setTimeout(() => el.classList.add('active'), 10);
+}
+setInterval(() => { if (Math.random() < 0.3) triggerGlitch(); }, 4000);
+
+// ─── GAME STATE ───
+const gameState = {
+  hp: 85,
+  energy: 70,
+  location: 'PYRAMID ENTRANCE',
+  inventory: ['AZUL SCANNER', 'VOID KEY FRAGMENT'],
+  flags: {
+    enteredPyramid: false,
+    foundDataCrystal: false,
+    azulUnlocked: false,
+    encounterPending: false,
+    currentEncounterEntity: '',
+  },
+  turnCount: 0,
+  conversationHistory: []
+};
+
+// ─── SYSTEM PROMPT ───
+const SYSTEM_PROMPT = `You are the AI game master for "SHADOWS OF THE Q-CODE" — a dark, moody open-world RPG set in the Blue Sector of the Maximum Reality Metaverse.
+
+SETTING:
+The player is an investigator armed with "AZUL", an AI-powered diagnostic tool. They explore the ancient Q-Code Pyramids — vast, shifting digital structures filled with data puzzles, energy-draining Static Snow, and awakened digital entities. A Chromatic Data-Storm currently rages outside.
+
+TONE: 
+- Atmospheric, terse, mysterious. Think: cyberpunk + ancient ruins + horror
+- Descriptions are visceral and sensory (the hum of corrupted data, the violet pulse of an awakened entity)
+- Keep responses under 120 words unless the player asks for more detail
+- Use fragmented, technical language naturally woven into narrative (sector stability, data-corruption, signal loss)
+
+GAMEPLAY MECHANICS (track in narrative):
+- HP drains in Static Snow fields (mention this)  
+- Energy/Power needed for AZUL scans
+- Data puzzles unlock new areas (give clues, not answers)
+- Entities can be fought, hacked, or fled from
+- Items are discovered and matter
+
+RESPONSE FORMAT:
+Always respond with a JSON object:
+{
+  "narrative": "The main scene description (string)",
+  "azul_report": "AZUL AI diagnostic comment (string, 1 sentence, technical/cryptic)",
+  "choices": ["choice 1", "choice 2", "choice 3"],
+  "hp_delta": 0,
+  "energy_delta": 0,
+  "encounter": null OR {"entity": "Entity Name", "description": "brief"},
+  "location": "current location name",
+  "item_found": null OR "item name",
+  "flag": null OR "flag_name"
+}
+
+Choices should be 3 distinct options that feel meaningful and atmospheric.
+Keep choices short (under 8 words each).
+Make the world feel alive, dangerous, and full of secrets.`;
+
+// ─── START GAME ───
+function startGame() {
+  const titleScreen = document.getElementById('title-screen');
+  titleScreen.classList.add('hidden');
+  setTimeout(() => titleScreen.style.display = 'none', 600);
+
+  // Initial message
+  const openingMsg = `You stand at the threshold of Pyramid Q-7. The data-storm has blown the entrance seal open — violet light bleeds from within. Your boots crunch on Static Snow; each step drains 0.2 HP. AZUL's scanner flickers with unknown signatures deep inside.`;
+
+  addSceneBlock('SECTOR ENTRANCE', openingMsg, 'scene');
+  addSceneBlock('AZUL', 'Multiple entity signatures detected. Recommend immediate sector scan. Data-storm interference at 60%.', 'azul');
+  showChoices([
+    'Enter the pyramid',
+    'Run a sector scan with AZUL',
+    'Search the snow field for items',
+    'Check the storm weather data'
+  ]);
+}
+
+// ─── UI HELPERS ───
+function addSceneBlock(label, text, type = 'scene') {
+  const panel = document.getElementById('scene-panel');
+  const block = document.createElement('div');
+  block.className = `scene-block ${type === 'azul' ? 'azul' : type === 'system' ? 'system' : type === 'danger' ? 'danger-msg' : type === 'success' ? 'success-msg' : ''}`;
+  block.innerHTML = `<div class="scene-label">${label}</div>${text}`;
+  panel.appendChild(block);
+  setTimeout(() => panel.scrollTop = panel.scrollHeight, 50);
+}
+
+function showChoices(choices) {
+  const container = document.getElementById('choices');
+  container.innerHTML = '';
+  choices.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = c;
+    btn.onclick = () => submitChoice(c);
+    container.appendChild(btn);
+  });
+}
+
+function clearChoices() {
+  document.getElementById('choices').innerHTML = '';
+}
+
+function setLoading(active) {
+  document.getElementById('loading-indicator').className = active ? 'active' : '';
+  document.getElementById('send-btn').disabled = active;
+  document.getElementById('player-input').disabled = active;
+  document.querySelectorAll('.choice-btn').forEach(b => b.disabled = active);
+}
+
+function updateStats(hpDelta = 0, energyDelta = 0) {
+  gameState.hp = Math.max(0, Math.min(100, gameState.hp + hpDelta));
+  gameState.energy = Math.max(0, Math.min(100, gameState.energy + energyDelta));
+
+  const hpBar = document.getElementById('hp-bar');
+  const enBar = document.getElementById('energy-bar');
+  hpBar.style.width = gameState.hp + '%';
+  enBar.style.width = gameState.energy + '%';
+
+  // Visual low HP warning
+  if (gameState.hp < 30) hpBar.classList.add('low');
+  else hpBar.classList.remove('low');
+
+  // ─── CHECK FOR DEATH ───
+  if (gameState.hp <= 0) {
+    triggerGlitch();
+    setTimeout(() => {
+      document.getElementById('game-over').classList.add('active');
+    }, 500);
+  }
+}
+
+function updateLocationTag(loc) {
+  gameState.location = loc;
+  document.getElementById('location-tag').textContent = loc.toUpperCase().substring(0, 20);
+}
+
+function showEncounterBanner(entityName) {
+  document.getElementById('encounter-name').textContent = entityName;
+  document.getElementById('encounter-banner').classList.add('active');
+  clearChoices();
+}
+
+function hideEncounterBanner() {
+  document.getElementById('encounter-banner').classList.remove('active');
+}
+
+// ─── ENCOUNTER HANDLING ───
+function handleEncounter(action) {
+  hideEncounterBanner();
+  const entity = gameState.flags.currentEncounterEntity;
+  submitChoice(`[ENCOUNTER] ${action.toUpperCase()} the ${entity}`);
+}
+
+// ─── MAIN API CALL ───
+async function callGameMaster(playerInput) {
+  const input = playerInput.toLowerCase();
+  
+  // Simulated Processing Delay
+  await new Promise(resolve => setTimeout(resolve, 800));
+
+  // ─── MOCK LOGIC ENGINE ───
+  let response = {
+    narrative: "The violet haze of the Blue Sector shifts. Your footsteps echo against the obsidian walls of the Q-Code Pyramid.",
+    azul_report: "Ambient noise levels rising. Watch your energy levels.",
+    choices: ["Move deeper into the dark", "Check the wall panels", "Signal for a snack break"],
+    hp_delta: -1,
+    energy_delta: -2,
+    location: gameState.location,
+    item_found: null
+  };
+
+  // ─── MOCHKIL'S SNACK ATTACK (HEAL) ───
+  if (input.includes("eat") || input.includes("snack") || input.includes("cook")) {
+    response.narrative = "You find a secure corner. Suddenly, a holographic transmission from Mochkil flickers to life. 'Snack squad, you look depleted! Try this Ginger Apricot infusion.' You consume the digital meal.";
+    response.azul_report = "Nutritional data synced. Cellular repair initiated. Chaos levels stable.";
+    response.choices = ["Resume the mission", "Scan for more ingredients", "Thank the Chef"];
+    response.hp_delta = 25; // Massive Heal
+    response.energy_delta = 15;
+    response.location = "PORTABLE KITCHEN NODE";
+  }
+
+  // ─── AZUL SCAN ───
+  else if (input.includes("scan") || input.includes("azul")) {
+    response.narrative = "Azul's eyes pulse with a deep indigo light. The scanner sweeps the room, revealing hidden ley-lines of corrupted data flowing beneath the floor.";
+    response.azul_report = "Structural integrity compromised. Multiple ghost-signals detected.";
+    response.choices = ["Follow the ghost-signal", "Re-calibrate scanner", "Back away slowly"];
+    response.energy_delta = -15;
+    response.location = "DATA HUB 01";
+  } 
+  
+  // ─── SEARCH ───
+  else if (input.includes("search") || input.includes("look")) {
+    const foundItem = Math.random() > 0.4;
+    response.narrative = "You sift through the Static Snow. It's cold enough to sting, but something metallic glints beneath the digital frost.";
+    response.azul_report = "Object detected. Origin: Pre-Crash Archives.";
+    response.item_found = foundItem ? "ENCRYPTED DATADISK" : null;
+    response.hp_delta = -5;
+    response.choices = ["Examine the disk", "Continue searching", "Leave the area"];
+  }
+
+  // ─── MOVEMENT ───
+  else if (input.includes("enter") || input.includes("pyramid")) {
+    response.narrative = "The massive triangular seal groans open. A rush of pressurized data-fog pours out, smelling of ozone and old parchment.";
+    response.azul_report = "Sector atmospheric pressure equalizing. Entry logged.";
+    response.location = "THE GREAT VESTIBULE";
+    response.hp_delta = -2;
+  }
+
+  // ─── COMBAT ───
+  else if (input.includes("fight") || input.includes("hack")) {
+    response.narrative = "The static phantom shudders as your commands pierce its core. It dissolves into a shower of white pixels.";
+    response.azul_report = "Entity neutralized. Harvesting fragmented data shards.";
+    response.energy_delta = -20;
+    response.hp_delta = -10;
+    response.item_found = "PHANTOM SHARD";
+  }
+
+  return response;
+}
+
+
+// ─── SUBMIT CHOICE / INPUT ───
+async function submitChoice(text) {
+  clearChoices();
+  addSceneBlock('YOU', text, 'system');
+
+  setLoading(true);
+  triggerGlitch();
+
+  try {
+    const result = await callGameMaster(text);
+    gameState.turnCount++;
+
+    // Update stats
+    if (result.hp_delta) updateStats(result.hp_delta, 0);
+    if (result.energy_delta) updateStats(0, result.energy_delta);
+
+    // Natural HP drain in snow fields
+    if (gameState.turnCount % 3 === 0) updateStats(-2, -1);
+
+    // Update location
+    if (result.location) updateLocationTag(result.location);
+
+    // Item found
+    if (result.item_found) {
+      gameState.inventory.push(result.item_found);
+      document.getElementById('item-tag').textContent = result.item_found;
+      addSceneBlock('◆ ITEM ACQUIRED', result.item_found, 'success');
+    }
+
+    // Main narrative
+    addSceneBlock('BLUE SECTOR', result.narrative, 'scene');
+
+    // AZUL report
+    if (result.azul_report) {
+      addSceneBlock('AZUL DIAGNOSTIC', result.azul_report, 'azul');
+    }
+
+    // Encounter
+    if (result.encounter) {
+      gameState.flags.currentEncounterEntity = result.encounter.entity;
+      addSceneBlock('⚠ THREAT', result.encounter.description, 'danger');
+      setTimeout(() => showEncounterBanner(result.encounter.entity), 500);
+    } else if (result.choices) {
+      showChoices(result.choices);
+    }
+
+    // HP critical warning
+    if (gameState.hp < 20) {
+      addSceneBlock('CRITICAL', 'HP CRITICAL. SECTOR CORRUPTION ADVANCING. EVACUATE OR RISK PERMANENT DATA LOSS.', 'danger');
+    }
+
+    // Glitch on dangerous events
+    if ((result.hp_delta && result.hp_delta < -10) || result.encounter) {
+      triggerGlitch();
+      setTimeout(triggerGlitch, 200);
+    }
+
+  } catch (err) {
+    addSceneBlock('SYSTEM ERROR', 'Signal lost. AZUL cannot process. Check your connection to the Blue Sector.', 'danger');
+    showChoices(['Retry last action', 'Rest and recover energy', 'Return to sector entrance']);
+  }
+
+  setLoading(false);
+}
+
+// ─── FREE TEXT INPUT ───
+function sendMessage() {
+  const input = document.getElementById('player-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  submitChoice(text);
+}
+
+document.getElementById('player-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendMessage();
+});
+</script>
+  <div id="game-over">
+  <div class="death-title">CONNECTION TERMINATED</div>
+  <div class="death-msg">DATA CORRUPTION CRITICAL // CONSCIOUSNESS UNLINKED</div>
+  <button id="start-btn" onclick="location.reload()">REBOOT SYSTEM</button>
+</div>
+
+</body>
+</html>
